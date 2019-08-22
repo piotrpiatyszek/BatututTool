@@ -8,8 +8,8 @@
       </div>
     </div>
     <div class="paths-container">
-      <PathItem v-for="path in paths" :key="path.layerId" :layerId="path.layerId" :name="path.name" :visible="path.visible" :layerColor="path.color"
-      v-on:update="updatePath" v-on:delete="deletePath" v-on:download="downloadPath" :isActive="path.isFirst">
+      <PathItem v-for="path in paths" :key="path.layerId" :layerId="path.layerId" :name="path.name" :visible="path.visible" :layerColor="path.color" :isActive="path.isFirst"
+      @update="$emit('updateLayer', $event)" @delete="$emit('deleteLayer', $event)" @download="downloadPath" @actived="$emit('actived', path.layerId)">
       </PathItem>
     </div>
   </div>
@@ -22,32 +22,9 @@ import { saveAs } from 'file-saver'
 export default {
   name: 'PathsList',
   props: {
-    nextLayerId: Number,
-    sourceName: String
-  },
-  data: function () {
-    return {
-      paths: []
-    }
-  },
-  watch: {
-    paths () {
-      this.$emit('updateLayers', { source: this.sourceName, layers: this.paths.filter(p => p.visible) })
-    }
-  },
-  mounted () {
-    this.$emit('init', this)
+    paths: Array
   },
   methods: {
-    updatePath (event) {
-      var index = this.paths.findIndex(path => path.layerId === event.layerId)
-      if (index < 0) return
-      var updatedPath = Object.assign({}, this.paths[index], event)
-      this.$set(this.paths, index, updatedPath)
-    },
-    deletePath (layerId) {
-      this.paths = this.paths.filter(path => path.layerId !== layerId)
-    },
     downloadPath (layerId) {
       var path = this.paths.find(path => path.layerId === layerId)
       if (!path) return
@@ -72,14 +49,9 @@ export default {
           trace: {
             x: p.x,
             y: p.y
-          },
-          visible: true,
-          color: 'black',
-          source: this.sourceName,
-          layerId: this.nextLayerId
+          }
         }
-        this.paths.push(path)
-        this.$emit('genLayerId')
+        this.$emit('addLayer', path)
       }
     }
   },

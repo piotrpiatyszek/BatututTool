@@ -1,5 +1,5 @@
 <template>
-  <div class="pathitem" v-bind:class="{active: isActive}">
+  <div class="pathitem" v-bind:class="{active: isActive}" @click.self="actived">
     <span class="pathname" v-if="!nameEdit" @click="nameEdit=true">{{ name }}</span>
     <input class="pathname" type="text" :value="name" @keyup.enter="nameEdit=false;$emit('update', {layerId, name: $event.target.value})" v-if="nameEdit">
     <div class="menubar">
@@ -43,6 +43,9 @@ export default {
     }
   },
   methods: {
+    actived () {
+      if (this.visible) this.$emit('actived')
+    }
   },
   components: {
     Compact
