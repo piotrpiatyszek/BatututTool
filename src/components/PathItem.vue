@@ -1,6 +1,6 @@
 <template>
   <div class="pathitem" v-bind:class="{active: isActive}" @click.self="actived">
-    <span class="pathname" v-if="!nameEdit" @click="nameEdit=true">{{ name }}</span>
+    <span class="pathname" v-if="!nameEdit" @click="nameEdit=true">{{ visibleName }}</span>
     <input class="pathname" type="text" :value="name" @keyup.enter="onNameEdited($event.target.value)" v-if="nameEdit">
     <div class="menubar">
       <button @click="colorpicker=!colorpicker" v-bind:style="{background: color.hex, color: 'white'}">{{ layerId }}</button>
@@ -27,12 +27,14 @@ export default {
     name: String
   },
   watch: {
-    name (newValue) {
-      if (!newValue) this.name = 'unnamed' // In case name is empty, this allows to open name input
-    },
     'color': function () {
       this.colorpicker = false
       this.$emit('update', { layerId: this.layerId, color: this.color.hex })
+    }
+  },
+  computed: {
+    visibleName () {
+      return (this.name ? this.name : 'unnamed').slice(0, 20)
     }
   },
   data: function () {
@@ -47,7 +49,6 @@ export default {
       if (this.visible) this.$emit('actived')
     },
     onNameEdited (newName) {
-      if (!newName) newName = 'unnamed'
       this.$emit('update', { layerId: this.layerId, name: newName })
       this.nameEdit = false
     }
