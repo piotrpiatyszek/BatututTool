@@ -3,16 +3,12 @@
     <Split style="height: 100%;" direction="vertical">
       <SplitArea :size="25">
         <Split style="height: 100%;" direction="horizontal">
-          <SplitArea :size="25">
+          <SplitArea :size="20">
             <PathsList @addLayer="addLayer('simplepaths', $event)" @deleteLayer="deleteLayer" @updateLayer="updateLayer" @actived="firstLayer=$event"
             :paths="layers.filter(l => l.source === 'simplepaths')"></PathsList>
           </SplitArea>
-          <SplitArea :size="25">
-            <AudioSources></AudioSources>
-          </SplitArea>
-          <SplitArea :size="25">
-          </SplitArea>
-          <SplitArea :size="25">
+          <SplitArea :size="80">
+            <AudioPanel></AudioPanel>
           </SplitArea>
         </Split>
       </SplitArea>
@@ -35,14 +31,14 @@
 
 <script>
 import PitchEnergyPlot from '@/components/PitchEnergyPlot.vue'
-import AudioSources from '@/components/AudioSources.vue'
+import AudioPanel from '@/components/AudioPanel.vue'
 import PathsList from '@/components/PathsList.vue'
 
 export default {
   name: 'home',
   components: {
     PitchEnergyPlot,
-    AudioSources,
+    AudioPanel,
     PathsList
   },
   watch: {

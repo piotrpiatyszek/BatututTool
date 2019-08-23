@@ -1,13 +1,12 @@
 <template>
-  <div class="audiosource" v-bind:class="{active: isActive}">
-    <span class="sourcename" v-if="!nameEdit" @click="nameEdit=true">{{ name }}</span>
-    <input class="sourcename" type="text" v-model="name" @keyup.enter="nameEdit=false" v-if="nameEdit">
+  <div class="audiosource" v-bind:class="{active: isActive}" @click.self="$emit('actived')">
+    <span class="sourcename" v-if="!nameEdit" @click="nameEdit=true">{{ visibleName }}</span>
+    <input class="sourcename" type="text" :value="name" @keyup.enter="onNameEdited($event.target.value)" v-if="nameEdit">
     <div class="menubar">
-      <button>▶</button>
-      <button @click="visible=!visible">👁<span class="cross" v-if="!visible">❌</span></button>
-      <button>⎘</button>
-      <button>⇩</button>
-      <button>❌</button>
+      <button @click="$emit('play')">▶</button>
+      <button @click="$emit('duplicate')">⎘</button>
+      <button @click="$emit('download')">⇩</button>
+      <button @click="$emit('delete')">❌</button>
     </div>
   </div>
 </template>
@@ -16,21 +15,24 @@
 export default {
   name: 'AudioSource',
   props: {
-    isActive: Boolean
+    isActive: Boolean,
+    name: String
   },
-  watch: {
-    nameEdit (newValue) {
-      if (!newValue && this.name.length === 0) this.name = 'unnamed'
+  computed: {
+    visibleName () {
+      return (this.name ? this.name : 'unnamed').slice(0, 20)
     }
   },
-  data: function () {
+  data () {
     return {
-      name: 'testname',
-      nameEdit: false,
-      visible: true
+      nameEdit: false
     }
   },
   methods: {
+    onNameEdited (newName) {
+      this.$emit('updateName', newName)
+      this.nameEdit = false
+    }
   }
 }
 </script>
@@ -76,11 +78,5 @@ export default {
   padding: 0 4px;
   line-height: 20px;
   position: relative;
-}
-
-button > span.cross {
-  position: absolute;
-  left: 50%;
-  transform: translate(-50%, 0)
 }
 </style>

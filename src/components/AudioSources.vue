@@ -3,15 +3,16 @@
     <div class="titlebar">
       <span>Audio Sources</span>
       <div class="menubar">
-        <button>•</button>
-        <button>📂</button>
+        <button v-if="false">•</button> <!-- TODO -->
+        <button @click="$refs.fileinput.click()">📂</button>
+        <input type="file" style="display: none" ref="fileinput" @change="loadFiles" multiple>
       </div>
     </div>
     <div class="sources-container">
-      <AudioSource></AudioSource>
-      <AudioSource></AudioSource>
-      <AudioSource :isActive="true"></AudioSource>
-      <AudioSource></AudioSource>
+      <AudioSource v-for="s in sources" :key="s.sourceId" :isActive="s.sourceId === activeSource"
+      :name="s.name" @play="play(s.sourceId)" @delete="$emit('delete', s.sourceId)"
+      @actived="$emit('actived', s.sourceId)" @download="download(s.sourceId)" @duplicate="duplicate(s.sourceId)"
+      @updateName="$emit('update', { sourceId: s.sourceId, name: $event })"></AudioSource>
     </div>
   </div>
 </template>
@@ -21,11 +22,25 @@ import AudioSource from '@/components/AudioSource.vue'
 
 export default {
   name: 'AudioSources',
-  data: function () {
-    return {
-    }
+  props: {
+    sources: Array,
+    activeSource: Number
   },
   methods: {
+    loadFiles (event) {
+      // for (var file of event.target.files) {
+      // TODO
+      // }
+    },
+    play (sourceId) {
+      // TODO
+    },
+    download (sourceId) {
+      // TODO
+    },
+    duplicate (sourceId) {
+      // TODO
+    }
   },
   components: {
     AudioSource
