@@ -43,13 +43,18 @@ export default {
       }
     },
     loadPath (p) {
-      if (p && Array.isArray(p.x) && Array.isArray(p.y) && p.x.length === p.y.length) {
+      if (!p) return
+      var trace = p.trace ? p.trace : p
+      if (trace && Array.isArray(trace.x) && Array.isArray(trace.y) && trace.x.length === trace.y.length) {
         var path = {
           name: p.name ? p.name + '' : 'unnamed',
           trace: {
-            x: p.x,
-            y: p.y
+            x: trace.x,
+            y: trace.y
           }
+        }
+        if (p.energy && Array.isArray(p.energy.mid) && Array.isArray(p.energy.value) && p.energy.value.length === p.energy.mid.length) {
+          path.energy = p.energy
         }
         this.$emit('addLayer', path)
       }

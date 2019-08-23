@@ -13,6 +13,7 @@
     "file-saver": "^2.0.2",
     "ify-loader": "^1.1.0",
     "plotly.js": "^1.49.3",
+    "tinycolor2": "^1.4.1",
     "vue": "^2.6.10",
     "vue-color": "^2.7.0",
     "vue-resize-directive": "^1.2.0",

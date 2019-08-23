@@ -24,8 +24,9 @@
           <button v-bind:style="{border: '3px solid grey'}" @click="deleteLayer(firstLayer)">❌</button>
           <button v-if="lastSelect" v-bind:style="{border: '3px solid grey'}" @click="selectToPath">Save to path</button>
         </div>
-        <div class="plotLayerContainer" v-for="layer in visibleLayers" :key="layer.layerId" v-bind:style="{zIndex: layer.layerId==firstLayer ? 1000:0}">
-          <PitchPlot :trace="layer.trace" :firstLayer="layer.isFirst" :id="layer.layerId" :color="layer.color" @selected="onSelection" :yRange="yRange" @update="onRescale" :xRelRange="xRelRange" :holdXShift="holdXShift"></PitchPlot>
+        <div class="plotLayerContainer" v-for="layer in visibleLayers" :key="layer.layerId" :style="{zIndex: layer.layerId==firstLayer ? 1000:0}">
+          <PitchEnergyPlot :trace="layer.trace" :isFirst="layer.isFirst" :layerId="layer.layerId" :color="layer.color" :yRange="yRange" :xRelRange="xRelRange"
+          :holdXShift="holdXShift" :selection="lastSelect" :energy="layer.energy" @update="onRescale" @selection="onSelection"></PitchEnergyPlot>
         </div>
       </SplitArea>
     </Split>
@@ -33,14 +34,14 @@
 </template>
 
 <script>
-import PitchPlot from '@/components/PitchPlot.vue'
+import PitchEnergyPlot from '@/components/PitchEnergyPlot.vue'
 import AudioSources from '@/components/AudioSources.vue'
 import PathsList from '@/components/PathsList.vue'
 
 export default {
   name: 'home',
   components: {
-    PitchPlot,
+    PitchEnergyPlot,
     AudioSources,
     PathsList
   },
@@ -74,7 +75,10 @@ export default {
   },
   methods: {
     onSelection: function (e) {
-      this.lastSelect = e
+      if (!e) return
+      if (e.close && this.lastSelect && e.layerId === this.lastSelect.layerId) {
+        this.lastSelect = null
+      } else if (!e.close) this.lastSelect = e
     },
     onRescale: function (e) {
       if (e.y) this.yRange = [e.y[0], e.y[1]]
