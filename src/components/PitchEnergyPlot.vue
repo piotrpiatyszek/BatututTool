@@ -19,6 +19,7 @@ export default {
     isFirst: Boolean,
     yRange: Array,
     layerId: Number,
+    layerName: String,
     xRelRange: Array,
     holdXShift: Boolean,
     selection: Object
@@ -154,6 +155,7 @@ export default {
       if (this.energyTrace) {
         this.energyTrace.forEach(t => {
           t.line.color = tinycolor(this.color).lighten(t.line.light).toString()
+          t.name = this.layerName
         })
         data = data.concat(this.energyTrace)
       } else {
@@ -161,6 +163,7 @@ export default {
           x: this.trace.x,
           y: this.trace.y,
           mode: 'lines',
+          name: this.layerName,
           line: {
             width: 2,
             color: this.color ? this.color : ''

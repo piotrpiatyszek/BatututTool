@@ -26,7 +26,7 @@
         </div>
         <div class="plotLayerContainer" v-for="layer in visibleLayers" :key="layer.layerId" :style="{zIndex: layer.layerId==firstLayer ? 1000:0}">
           <PitchEnergyPlot :trace="layer.trace" :isFirst="layer.isFirst" :layerId="layer.layerId" :color="layer.color" :yRange="yRange" :xRelRange="xRelRange"
-          :holdXShift="holdXShift" :selection="lastSelect" :energy="layer.energy" @update="onRescale" @selection="onSelection"></PitchEnergyPlot>
+          :holdXShift="holdXShift" :selection="lastSelect" :energy="layer.energy" :layerName="layer.name" @update="onRescale" @selection="onSelection"></PitchEnergyPlot>
         </div>
       </SplitArea>
     </Split>

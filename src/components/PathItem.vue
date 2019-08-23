@@ -1,7 +1,7 @@
 <template>
   <div class="pathitem" v-bind:class="{active: isActive}" @click.self="actived">
     <span class="pathname" v-if="!nameEdit" @click="nameEdit=true">{{ name }}</span>
-    <input class="pathname" type="text" :value="name" @keyup.enter="nameEdit=false;$emit('update', {layerId, name: $event.target.value})" v-if="nameEdit">
+    <input class="pathname" type="text" :value="name" @keyup.enter="onNameEdited($event.target.value)" v-if="nameEdit">
     <div class="menubar">
       <button @click="colorpicker=!colorpicker" v-bind:style="{background: color.hex, color: 'white'}">{{ layerId }}</button>
       <button @click="$emit('update', {layerId, visible: !visible})">👁<span class="cross" v-if="!visible">❌</span></button>
@@ -45,6 +45,11 @@ export default {
   methods: {
     actived () {
       if (this.visible) this.$emit('actived')
+    },
+    onNameEdited (newName) {
+      if (!newName) newName = 'unnamed'
+      this.$emit('update', { layerId: this.layerId, name: newName })
+      this.nameEdit = false
     }
   },
   components: {
