@@ -27,8 +27,8 @@ export default {
     name: String
   },
   watch: {
-    nameEdit (newValue) {
-      if (!newValue && this.name.length === 0) this.name = 'unnamed'
+    name (newValue) {
+      if (!newValue) this.name = 'unnamed' // In case name is empty, this allows to open name input
     },
     'color': function () {
       this.colorpicker = false
