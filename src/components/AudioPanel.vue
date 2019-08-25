@@ -49,7 +49,7 @@ export default {
       this.audioSources = this.audioSources.filter(s => s.sourceId !== sourceId)
     },
     addSource (source) {
-      if (!source || !source.audio) return
+      if (!source || !source.audio || !source.dataURL || !source.file) return
       source.sourceId = this.nextSourceId
       this.nextSourceId += 1
       source.name = source.name ? source.name + '' : 'unnamed'
@@ -62,10 +62,10 @@ export default {
           this.deleteSource(source.sourceId)
         }
         source.audio.onplay = source.audio.onplaying = e => {
-          source.playing = true
+          this.updateSource({ sourceId: source.sourceId, playing: true })
         }
         source.audio.onpause = source.audio.onended = e => {
-          source.playing = false
+          this.updateSource({ sourceId: source.sourceId, playing: false })
         }
       }
     }

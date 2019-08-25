@@ -19,6 +19,7 @@
 
 <script>
 import AudioSource from '@/components/AudioSource.vue'
+import { saveAs } from 'file-saver'
 
 export default {
   name: 'AudioSources',
@@ -43,7 +44,9 @@ export default {
           var audio = new Audio(data)
           audioSource = {
             audio,
-            name: file.name
+            name: file.name,
+            file,
+            dataURL: data
           }
         } catch (e) {
           console.error(e)
@@ -58,16 +61,25 @@ export default {
     },
     stop (sourceId) {
       var source = this.sources.find(s => s.sourceId === sourceId)
-      if (source) {
-        source.audio.pause()
-        source.audio.currentTime = 0.0
-      }
+      if (!source) return
+      source.audio.pause()
+      source.audio.currentTime = 0.0
     },
     download (sourceId) {
-      // TODO
+      var source = this.sources.find(s => s.sourceId === sourceId)
+      if (!source) return
+      saveAs(source.file, source.name + '.wav')
     },
     duplicate (sourceId) {
-      // TODO
+      var source = this.sources.find(s => s.sourceId === sourceId)
+      if (!source) return
+      var sourceCopy = {
+        audio: new Audio(source.dataURL),
+        dataURL: source.dataURL,
+        file: new Blob([source.file], { type: source.file.type }),
+        name: source.name + ' - Copy'
+      }
+      this.$emit('addSource', sourceCopy)
     }
   },
   components: {
