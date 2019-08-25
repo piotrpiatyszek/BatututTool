@@ -3,12 +3,12 @@
     <span class="pathname" v-if="!nameEdit" @click="nameEdit=true">{{ visibleName }}</span>
     <input class="pathname" type="text" :value="name" @keyup.enter="onNameEdited($event.target.value)" v-if="nameEdit">
     <div class="menubar">
-      <button @click="colorpicker=!colorpicker" v-bind:style="{background: color.hex, color: 'white'}">{{ layerId }}</button>
+      <button @click="colorpicker=!colorpicker" v-bind:style="{background: color.hex, color: 'white'}" ref="colorbutton">{{ layerId }}</button>
       <button @click="$emit('update', {layerId, visible: !visible})">👁<span class="cross" v-if="!visible">❌</span></button>
       <button @click="$emit('download', layerId)">⇩</button>
       <button @click="$emit('delete', layerId)">❌</button>
     </div>
-    <div class="colorpicker-container" v-if="colorpicker">
+    <div class="colorpicker-container" v-if="colorpicker" v-click-outside="hideColorPicker">
       <compact v-model="color"></compact>
     </div>
   </div>
@@ -16,6 +16,7 @@
 
 <script>
 import { Compact } from 'vue-color'
+import ClickOutside from 'vue-click-outside'
 
 export default {
   name: 'PathItem',
@@ -51,10 +52,20 @@ export default {
     onNameEdited (newName) {
       this.$emit('update', { layerId: this.layerId, name: newName })
       this.nameEdit = false
+    },
+    hideColorPicker () {
+      this.colorpicker = false
     }
+  },
+  mounted () {
+    // Prevent closing picker after clicking to open it
+    this.popupItem = this.$refs.colorbutton
   },
   components: {
     Compact
+  },
+  directives: {
+    ClickOutside
   }
 }
 </script>
