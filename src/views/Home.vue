@@ -50,7 +50,10 @@ export default {
     },
     layers (newValue) {
       var index = newValue.findIndex(l => l.layerId === this.firstLayer && l.visible)
-      if (index < 0 && newValue.length > 0) this.firstLayer = newValue[0].layerId
+      if (index < 0) {
+        var firstVisible = this.layers.find(l => l.visible)
+        if (firstVisible) this.firstLayer = firstVisible.layerId
+      }
     }
   },
   computed: {
