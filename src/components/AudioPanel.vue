@@ -3,7 +3,7 @@
     <Split style="height: 100%;" direction="horizontal">
       <SplitArea :size="25">
         <AudioSources :sources="audioSources" :activeSource="activeSourceId" @delete="deleteSource"
-        @update="updateSource" @actived="activeSourceId = $event"></AudioSources>
+        @update="updateSource" @actived="activeSourceId = $event" @addSource="addSource"></AudioSources>
       </SplitArea>
       <SplitArea :size="50">
         <AudioConfiguration :configurations="sharedConfigurations" :sourceConf="(activeSource | {}).conf"
@@ -27,7 +27,8 @@ export default {
     return {
       activeSourceId: -1,
       audioSources: [],
-      sharedConfigurations: []
+      sharedConfigurations: [],
+      nextSourceId: 1
     }
   },
   computed: {
@@ -43,7 +44,30 @@ export default {
       this.$set(this.audioSources, index, Object.assign({}, this.audioSources[index], newSource))
     },
     deleteSource (sourceId) {
+      var source = this.audioSources.find(s => s.sourceId === sourceId)
+      if (source && source.audio) source.audio.pause()
       this.audioSources = this.audioSources.filter(s => s.sourceId !== sourceId)
+    },
+    addSource (source) {
+      if (!source || !source.audio) return
+      source.sourceId = this.nextSourceId
+      this.nextSourceId += 1
+      source.name = source.name ? source.name + '' : 'unnamed'
+      source.playing = false
+      if (source.audio.error) console.error('[' + source.name + '] ' + source.audio.error.message)
+      else {
+        this.audioSources.push(source)
+        source.audio.onerror = e => {
+          console.error('[' + source.name + '] ' + e.target.error.message)
+          this.deleteSource(source.sourceId)
+        }
+        source.audio.onplay = source.audio.onplaying = e => {
+          source.playing = true
+        }
+        source.audio.onpause = source.audio.onended = e => {
+          source.playing = false
+        }
+      }
     }
   },
   components: {

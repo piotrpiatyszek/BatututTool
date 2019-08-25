@@ -9,8 +9,8 @@
       </div>
     </div>
     <div class="sources-container">
-      <AudioSource v-for="s in sources" :key="s.sourceId" :isActive="s.sourceId === activeSource"
-      :name="s.name" @play="play(s.sourceId)" @delete="$emit('delete', s.sourceId)"
+      <AudioSource v-for="s in sources" :key="s.sourceId" :isActive="s.sourceId === activeSource" :name="s.name"
+      :isPlaying="s.playing" @play="play(s.sourceId)" @delete="$emit('delete', s.sourceId)" @stop="stop(s.sourceId)"
       @actived="$emit('actived', s.sourceId)" @download="download(s.sourceId)" @duplicate="duplicate(s.sourceId)"
       @updateName="$emit('update', { sourceId: s.sourceId, name: $event })"></AudioSource>
     </div>
@@ -28,12 +28,40 @@ export default {
   },
   methods: {
     loadFiles (event) {
-      // for (var file of event.target.files) {
-      // TODO
-      // }
+      for (var file of event.target.files) this.loadFile(file)
+    },
+    loadFile (file) {
+      var reader = new FileReader()
+      reader.onload = e => {
+        var audioSource
+        try {
+          var data = e.target.result
+          var mime = data.split(',')[0]
+          if (mime !== 'data:audio/x-wav;base64') {
+            throw new Error('[' + file.name + '] Expected type data:audio/x-wav;base64 but got ' + mime)
+          }
+          var audio = new Audio(data)
+          audioSource = {
+            audio,
+            name: file.name
+          }
+        } catch (e) {
+          console.error(e)
+        }
+        if (audioSource) this.$emit('addSource', audioSource)
+      }
+      reader.readAsDataURL(file)
     },
     play (sourceId) {
-      // TODO
+      var source = this.sources.find(s => s.sourceId === sourceId)
+      if (source) source.audio.play()
+    },
+    stop (sourceId) {
+      var source = this.sources.find(s => s.sourceId === sourceId)
+      if (source) {
+        source.audio.pause()
+        source.audio.currentTime = 0.0
+      }
     },
     download (sourceId) {
       // TODO

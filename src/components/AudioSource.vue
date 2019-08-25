@@ -3,7 +3,8 @@
     <span class="sourcename" v-if="!nameEdit" @click="nameEdit=true">{{ visibleName }}</span>
     <input class="sourcename" type="text" :value="name" @keyup.enter="onNameEdited($event.target.value)" v-if="nameEdit">
     <div class="menubar">
-      <button @click="$emit('play')">▶</button>
+      <button v-if="!isPlaying" @click="$emit('play')">▶</button>
+      <button v-if="isPlaying" @click="$emit('stop')">■</button>
       <button @click="$emit('duplicate')">⎘</button>
       <button @click="$emit('download')">⇩</button>
       <button @click="$emit('delete')">❌</button>
@@ -16,6 +17,7 @@ export default {
   name: 'AudioSource',
   props: {
     isActive: Boolean,
+    isPlaying: Boolean,
     name: String
   },
   computed: {
