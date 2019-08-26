@@ -3,11 +3,13 @@
     <div class="titlebar">
       <span>Audio Configuration</span>
       <div class="menubar">
-        <button @click="$refs.fileinput.click()">📂</button>
-        <input type="file" style="display: none" ref="fileinput" @change="loadFiles" multiple>
       </div>
     </div>
-    <div class="configuration">
+    <div class="configuration" v-if="conf">
+      <div v-for="s in schema" :key="s.name" class="input-box" :title="s.desc">
+        {{ s.name }} <br>
+        <input :value="config[s.name]" @change="onChange(s.name, $event.target.value)" :class="{ error: error[s.name], edited: edited[s.name] }" @keyup.enter="save">
+      </div>
     </div>
   </div>
 </template>
@@ -16,15 +18,44 @@
 export default {
   name: 'AudioConfiguration',
   props: {
-    configurations: Array,
-    sourceConf: Object, // Own configuration of audio source
-    sourceSharedConf: Number // Id of choosen shared conf, -1 if own conf is used
+    conf: Object,
+    schema: Object
+  },
+  watch: {
+    conf: {
+      handler () {
+        this.config = Object.assign({}, this.conf)
+        this.edited = {}
+        this.error = {}
+      },
+      immediate: true
+    }
+  },
+  data () {
+    return {
+      config: {},
+      edited: {},
+      error: {}
+    }
   },
   methods: {
-    loadFiles (event) {
-      // for (var file of event.target.files) {
-      // TODO
-      // }
+    onChange (name, value) {
+      this.$set(this.edited, name, true)
+      var parsed = value
+      var error = false
+      if (this.schema[name].type === 'Float') {
+        error = !/^-?[0-9]+(e[0-9]+)?(\.[0-9]+)?$/.test(value)
+        if (!error) parsed = Number.parseFloat(value)
+      } else if (this.schema[name].type === 'Integer') {
+        error = !/^-{0,1}\d+$/.test(value)
+        if (!error) parsed = Number.parseInt(value)
+      }
+      this.$set(this.error, name, error)
+      this.$set(this.config, name, parsed)
+    },
+    save () {
+      for (var e in this.error) if (this.error[e]) return
+      this.$emit('update', this.config)
     }
   }
 }
@@ -68,4 +99,22 @@ export default {
   line-height: 20px;
 }
 
+.audio-configuration > .configuration > .input-box {
+  display: inline-block;
+  width: 160px;
+  margin: 10px;
+}
+
+.audio-configuration > .configuration > .input-box > input {
+  width: 100%;
+  box-sizing: border-box;
+}
+
+.audio-configuration > .configuration > .input-box > input.error.edited {
+  border-color: red;
+}
+
+.audio-configuration > .configuration > .input-box > input.edited {
+  border-color: orange;
+}
 </style>

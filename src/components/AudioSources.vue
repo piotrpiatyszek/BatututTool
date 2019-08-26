@@ -1,6 +1,6 @@
 <template>
   <div class="audiosources">
-    <div class="titlebar">
+    <div class="titlebar" @click.self="$emit('actived', null)">
       <span>Audio Sources</span>
       <div class="menubar">
         <button v-if="false">•</button> <!-- TODO -->
@@ -8,11 +8,12 @@
         <input type="file" style="display: none" ref="fileinput" @change="loadFiles" multiple>
       </div>
     </div>
-    <div class="sources-container">
-      <AudioSource v-for="s in sources" :key="s.sourceId" :isActive="s.sourceId === activeSource" :name="s.name"
-      :isPlaying="s.playing" @play="play(s.sourceId)" @delete="$emit('delete', s.sourceId)" @stop="stop(s.sourceId)"
-      @actived="$emit('actived', s.sourceId)" @download="download(s.sourceId)" @duplicate="duplicate(s.sourceId)"
-      @updateName="$emit('update', { sourceId: s.sourceId, name: $event })"></AudioSource>
+    <div class="sources-container" @click.self="$emit('actived', null)">
+      <AudioSource v-for="s in sources" :key="s.sourceId" :isActive="s.sourceId === activeSource" :name="s.name" :choosenConf="s.sharedConf"
+      :isPlaying="s.playing" :configurations="configurations" @play="play(s.sourceId)" @delete="$emit('delete', s.sourceId)"
+      @stop="stop(s.sourceId)" @actived="$emit('actived', s.sourceId)" @download="download(s.sourceId)"
+      @duplicate="duplicate(s.sourceId)" @update="$emit('update', Object.assign($event, { sourceId: s.sourceId }))">
+      </AudioSource>
     </div>
   </div>
 </template>
@@ -25,7 +26,8 @@ export default {
   name: 'AudioSources',
   props: {
     sources: Array,
-    activeSource: Number
+    activeSource: Number,
+    configurations: Array
   },
   methods: {
     loadFiles (event) {

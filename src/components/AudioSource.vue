@@ -6,35 +6,59 @@
       <button v-if="!isPlaying" @click="$emit('play')">▶</button>
       <button v-if="isPlaying" @click="$emit('stop')">■</button>
       <button @click="$emit('duplicate')">⎘</button>
+      <button @click="confList=!confList" ref="conflistbutton">T</button>
       <button @click="$emit('download')">⇩</button>
       <button @click="$emit('delete')">❌</button>
+    </div>
+    <div class="conflist-container" v-if="confList" v-click-outside="hideConfList">
+      <div v-for="c in mergedConfs" :key="c.confId" :class="{active: choosenConf === c.confId}" class="conf"
+      @click="$emit('update', { sharedConf: c.confId })">{{ c.name }}</div>
     </div>
   </div>
 </template>
 
 <script>
+import ClickOutside from 'vue-click-outside'
+
 export default {
   name: 'AudioSource',
   props: {
     isActive: Boolean,
     isPlaying: Boolean,
+    configurations: Array,
+    choosenConf: Number,
     name: String
   },
   computed: {
     visibleName () {
       return (this.name ? this.name : 'unnamed').slice(0, 20)
+    },
+    // Adds merge shared confs with fake own conf
+    mergedConfs () {
+      return [ ...this.configurations, { confId: -1, name: 'Own' } ]
     }
   },
   data () {
     return {
-      nameEdit: false
+      nameEdit: false,
+      confList: false
     }
   },
   methods: {
     onNameEdited (newName) {
-      this.$emit('updateName', newName)
+      this.$emit('update', { name: newName })
       this.nameEdit = false
+    },
+    hideConfList () {
+      this.confList = false
     }
+  },
+  mounted () {
+    // Prevent closing picker after clicking to open it
+    this.popupItem = this.$refs.conflistbutton
+  },
+  directives: {
+    ClickOutside
   }
 }
 </script>
@@ -80,5 +104,28 @@ export default {
   padding: 0 4px;
   line-height: 20px;
   position: relative;
+}
+
+.audiosource > .conflist-container {
+  position: absolute;
+  right: 5px;
+  background: white;
+  /* Same as in color picker */
+  box-shadow: 0 2px 10px rgba(0,0,0,.12), 0 2px 5px rgba(0,0,0,.16);
+  border-radius: 2px;
+  z-index: 100;
+  width: 300px;
+}
+
+.audiosource > .conflist-container > .conf {
+  font-size: 20px;
+  color: #3f3f3f;
+  width: calc(100% - 10px);
+  padding: 5px;
+  overflow-wrap: break-word;
+}
+
+.audiosource > .conflist-container > .conf.active {
+  background: #effbff;
 }
 </style>
