@@ -48,6 +48,7 @@ export default {
         l.isFirst = l.layerId === newValue
         this.$set(this.layers, index, l)
       })
+      this.lastSelect = null
     },
     layers (newValue) {
       var index = newValue.findIndex(l => l.layerId === this.firstLayer && l.visible)
