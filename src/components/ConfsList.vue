@@ -9,7 +9,7 @@
     </div>
     <div class="confs-container" @click.self="$emit('actived', null)">
       <ConfItem :isActive="activeConf === -1" :name="'[' + activeSourceName + ']'" :editable="false"
-      @actived="$emit('actived', -1)" v-if="activeSourceConf" @download='download(-1)'>
+      @actived="$emit('actived', -1)" v-if="activeSourceConf" @download='download(-1)' @duplicate="duplicate(-1)">
       </ConfItem>
       <ConfItem v-for="c in configurations" :key="c.confId" :isActive="c.confId === activeConf"
       :name="c.name" @delete="$emit('delete', c.confId)" @actived="$emit('actived', c.confId)"
