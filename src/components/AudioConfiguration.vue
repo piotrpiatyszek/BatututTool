@@ -101,8 +101,8 @@ export default {
 
 .audio-configuration > .configuration > .input-box {
   display: inline-block;
-  width: 160px;
-  margin: 10px;
+  width: 140px;
+  margin: 5px;
 }
 
 .audio-configuration > .configuration > .input-box > input {
