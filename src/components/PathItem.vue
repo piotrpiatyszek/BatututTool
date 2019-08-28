@@ -29,8 +29,13 @@ export default {
   },
   watch: {
     'color': function () {
+      // Updating only if color was changed by the color picker
+      if (!this.colorpicker) return
       this.colorpicker = false
       this.$emit('update', { layerId: this.layerId, color: this.color.hex })
+    },
+    layerColor (newValue) {
+      this.color = { hex: newValue }
     }
   },
   computed: {
