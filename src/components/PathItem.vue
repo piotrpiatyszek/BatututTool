@@ -6,7 +6,7 @@
       <button @click="colorpicker=!colorpicker" v-bind:style="{background: color.hex, color: 'white'}" ref="colorbutton">{{ layerId }}</button>
       <button @click="$emit('update', {layerId, visible: !visible})">👁<span class="cross" v-if="!visible">❌</span></button>
       <button @click="$emit('download', layerId)">⇩</button>
-      <button @click="$emit('delete', layerId)">❌</button>
+      <button v-if="deletable" @click="$emit('delete', layerId)">❌</button>
     </div>
     <div class="colorpicker-container" v-if="colorpicker" v-click-outside="hideColorPicker">
       <compact v-model="color"></compact>
@@ -25,7 +25,8 @@ export default {
     layerId: Number,
     layerColor: String,
     visible: Boolean,
-    name: String
+    name: String,
+    deletable: Boolean
   },
   watch: {
     'color': function () {

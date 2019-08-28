@@ -8,8 +8,9 @@
       </div>
     </div>
     <div class="paths-container">
-      <PathItem v-for="path in paths" :key="path.layerId" :layerId="path.layerId" :name="path.name" :visible="path.visible" :layerColor="path.color" :isActive="path.isFirst"
-      @update="$emit('updateLayer', $event)" @delete="$emit('deleteLayer', $event)" @download="downloadPath" @actived="$emit('actived', path.layerId)">
+      <PathItem v-for="path in paths" :deletable="true" :key="path.layerId" :layerId="path.layerId" :name="path.name" :visible="path.visible"
+      :layerColor="path.color" :isActive="path.isFirst" @update="$emit('updateLayer', $event)" @delete="$emit('deleteLayer', $event)"
+      @download="downloadPath" @actived="$emit('actived', path.layerId)">
       </PathItem>
     </div>
   </div>
