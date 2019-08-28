@@ -18,8 +18,8 @@
         </AudioConfiguration>
       </SplitArea>
       <SplitArea :size="25">
-        <AudioLayers :layers="activeAudioLayers" @actived="$emit('actived', $event)" @updateLayer="$emit('updateLayer', $event)"
-        @deleteLayer="deleteLayer($event)"></AudioLayers>
+        <AudioLayers :layers="activeAudioLayers" :displayExportButton="selection && selection.horizontalSelect && layers.findIndex(l => l.layerId === selection.layerId) >= 0" @exportToLayer="exportToLayer"
+        @actived="$emit('actived', $event)" @updateLayer="$emit('updateLayer', $event)" @deleteLayer="deleteLayer($event)"></AudioLayers>
       </SplitArea>
     </Split>
   </div>
@@ -35,7 +35,8 @@ import AudioLayers from '@/components/AudioLayers.vue'
 export default {
   name: 'AudioPanel',
   props: {
-    layers: Array
+    layers: Array,
+    selection: Object
   },
   data () {
     return {
@@ -67,6 +68,18 @@ export default {
     }
   },
   methods: {
+    exportToLayer () {
+      var firstLayer = this.layers.find(l => l.isFirst)
+      if (!firstLayer) return
+      this.audioSources.forEach(s => {
+        var layer = s.layers.find(l => l.layerId === firstLayer.layerId)
+        if (!layer) return
+        var offset = layer.range ? layer.range[0] : 0
+        var newRange = [offset + this.selection.indexRange[0], offset + this.selection.indexRange[1]]
+        s.layers.push({ range: newRange })
+        this.refreshLayers(s.sourceId)
+      })
+    },
     updateSource (newSource) {
       if (!newSource || !newSource.sourceId) return
       var index = this.audioSources.findIndex(s => s.sourceId === newSource.sourceId)
@@ -133,8 +146,8 @@ export default {
           if (l.range) {
             var start = l.range[0] >= 0 ? l.range[0] : 0
             var end = l.range[1] > start ? l.range[1] : start
-            tracePart.x = trace.x.slice(start, end)
-            tracePart.y = trace.y.slice(start, end)
+            tracePart.x = trace.x.slice(start, end + 1)
+            tracePart.y = trace.y.slice(start, end + 1)
           } else {
             tracePart = trace
           }

@@ -3,6 +3,7 @@
     <div class="titlebar">
       <span>Audio Layers</span>
       <div class="menubar">
+        <button v-if="displayExportButton" @click="$emit('exportToLayer')">Export To Layer</button>
       </div>
     </div>
     <div class="audiolayers-container">
@@ -20,7 +21,8 @@ import { saveAs } from 'file-saver'
 export default {
   name: 'AudioLayers',
   props: {
-    layers: Array
+    layers: Array,
+    displayExportButton: Boolean
   },
   methods: {
     downloadLayer (layerId) {

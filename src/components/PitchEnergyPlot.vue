@@ -268,6 +268,7 @@ export default {
         horizontalSelect,
         verticalSelect,
         timeRange,
+        indexRange,
         valueRange,
         layerId: this.layerId
       }

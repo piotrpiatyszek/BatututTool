@@ -8,7 +8,7 @@
             :paths="layers.filter(l => l.source === 'simplepaths')"></PathsList>
           </SplitArea>
           <SplitArea :size="80">
-            <AudioPanel :layers="layers.filter(l => l.source === 'audiopaths')" @actived="firstLayer=$event" @updateLayer="updateLayer"
+            <AudioPanel :layers="layers.filter(l => l.source === 'audiopaths')" :selection="lastSelect" @actived="firstLayer=$event" @updateLayer="updateLayer"
             @deleteLayer="deleteLayer" @addLayer="addLayer('audiopaths', $event.layer, $event.callback)"></AudioPanel>
           </SplitArea>
         </Split>
