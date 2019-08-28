@@ -18,7 +18,8 @@
         </AudioConfiguration>
       </SplitArea>
       <SplitArea :size="25">
-      <!-- Layers list TODO -->
+        <AudioLayers :layers="activeAudioLayers" @actived="$emit('actived', $event)" @updateLayer="$emit('updateLayer', $event)"
+        @deleteLayer="deleteLayer($event)"></AudioLayers>
       </SplitArea>
     </Split>
   </div>
@@ -29,9 +30,13 @@ import AudioSources from '@/components/AudioSources.vue'
 import AudioConfiguration from '@/components/AudioConfiguration.vue'
 import ConfsList from '@/components/ConfsList.vue'
 import AudioConfig from '@/lib/configuration.js'
+import AudioLayers from '@/components/AudioLayers.vue'
 
 export default {
   name: 'AudioPanel',
+  props: {
+    layers: Array
+  },
   data () {
     return {
       activeSourceId: -1,
@@ -50,6 +55,15 @@ export default {
     activeConf () {
       if (this.activeConfId === -1 && this.activeSource) return this.activeSource.conf
       return this.sharedConfigurations.find(c => c.confId === this.activeConfId)
+    },
+    activeAudioLayers () {
+      var activeLayersIds = {}
+      if (this.activeSource) {
+        this.activeSource.layers.forEach(l => {
+          if (l.layerId) activeLayersIds[l.layerId] = true
+        })
+      }
+      return this.layers.filter(l => activeLayersIds[l.layerId])
     }
   },
   methods: {
@@ -62,6 +76,11 @@ export default {
     deleteSource (sourceId) {
       var source = this.audioSources.find(s => s.sourceId === sourceId)
       if (source && source.audio) source.audio.pause()
+      if (source && source.layers) {
+        source.layers.forEach(l => {
+          if (l.layerId) this.$emit('deleteLayer', l.layerId)
+        })
+      }
       this.audioSources = this.audioSources.filter(s => s.sourceId !== sourceId)
     },
     addSource (source) {
@@ -72,9 +91,12 @@ export default {
       source.sharedConf = -1
       source.conf = AudioConfig.getDefaultConfig()
       source.playing = false
+      source.layers = [ { range: null, layerId: null } ]
+      source.request = { waiting: false }
       if (source.audio.error) console.error('[' + source.name + '] ' + source.audio.error.message)
       else {
         this.audioSources.push(source)
+        this.refreshLayers(source.sourceId)
         source.audio.onerror = e => {
           console.error('[' + source.name + '] ' + e.target.error.message)
           this.deleteSource(source.sourceId)
@@ -86,6 +108,55 @@ export default {
           this.updateSource({ sourceId: source.sourceId, playing: false })
         }
       }
+    },
+    deleteLayer (layerId) {
+      this.audioSources.forEach(s => {
+        if (s.layers) this.$set(s, 'layers', s.layers.filter(l => l.layerId !== layerId))
+      })
+      this.$emit('deleteLayer', layerId)
+    },
+    refreshLayers (sourceId) {
+      var source = this.audioSources.find(s => s.sourceId === sourceId)
+      if (!source) return
+      // TODO backend
+      source.request = { waiting: true, id: {} }
+      var requestId = source.request.id
+      setTimeout(() => {
+        var source2 = this.audioSources.find(s => s.sourceId === sourceId)
+        if (!source2) return
+        if (requestId !== source2.request.id) return // Next request was sent
+        this.$set(source2.request, 'waiting', false)
+        var trace = { x: [...Array(50).keys()], y: [...Array(50).keys()] }
+        trace.y.sort((e1, e2) => Math.random() - Math.random())
+        source2.layers.forEach((l, index) => {
+          var tracePart = {}
+          if (l.range) {
+            var start = l.range[0] >= 0 ? l.range[0] : 0
+            var end = l.range[1] > start ? l.range[1] : start
+            tracePart.x = trace.x.slice(start, end)
+            tracePart.y = trace.y.slice(start, end)
+          } else {
+            tracePart = trace
+          }
+
+          if (l.layerId) {
+            this.$emit('updateLayer', { layerId: l.layerId, trace: tracePart })
+          } else {
+            this.$emit('addLayer', {
+              layer: {
+                trace: tracePart,
+                name: l.range ? '' : 'Full',
+                deletable: !!l.range
+              },
+              callback: (layerId) => {
+                if (!l || !source2) return
+                l.layerId = layerId
+                this.$set(source2.layers, index, l)
+              }
+            })
+          }
+        })
+      }, 2000)
     },
     addConf (conf) {
       if (!AudioConfig.validate(conf)) return
@@ -99,8 +170,10 @@ export default {
         var index = this.sharedConfigurations.findIndex(c => c.confId === newConf.confId)
         if (index < 0) return
         this.$set(this.sharedConfigurations, index, Object.assign({}, newConf))
+        this.audioSources.filter(s => s.sharedConf === newConf.confId).forEach(s => this.refreshLayers(s.sourceId))
       } else {
         this.updateSource({ sourceId: this.activeSourceId, conf: Object.assign({}, newConf) })
+        this.refreshLayers(this.activeSourceId)
       }
     },
     deleteConf (confId) {
@@ -109,6 +182,7 @@ export default {
   },
   components: {
     AudioSources,
+    AudioLayers,
     ConfsList,
     AudioConfiguration
   }

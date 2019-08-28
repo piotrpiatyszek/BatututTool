@@ -1,0 +1,82 @@
+<template>
+  <div class="audiolayers">
+    <div class="titlebar">
+      <span>Audio Layers</span>
+      <div class="menubar">
+      </div>
+    </div>
+    <div class="audiolayers-container">
+      <PathItem v-for="l in layers" :key="l.layerId" :deletable="l.deletable" :layerId="l.layerId" :name="l.name" :visible="l.visible" :layerColor="l.color" :isActive="l.isFirst"
+      @update="$emit('updateLayer', $event)" @delete="$emit('deleteLayer', $event)" @download="downloadLayer" @actived="$emit('actived', l.layerId)">
+      </PathItem>
+    </div>
+  </div>
+</template>
+
+<script>
+import PathItem from '@/components/PathItem.vue'
+import { saveAs } from 'file-saver'
+
+export default {
+  name: 'AudioLayers',
+  props: {
+    layers: Array
+  },
+  methods: {
+    downloadLayer (layerId) {
+      var layer = this.layers.find(l => l.layerId === layerId)
+      if (!layer) return
+      var json = JSON.stringify({ x: layer.trace.x, y: layer.trace.y, name: layer.name, color: layer.color })
+      saveAs(new Blob([json], { type: 'application/json', name: layer.name + '.json' }), layer.name + '.json')
+    }
+  },
+  components: {
+    PathItem
+  }
+}
+</script>
+
+<style>
+.audiolayers {
+  width: 100%;
+  height: 100%;
+  position: relative;
+  top: 0;
+  left: 0;
+}
+
+.audiolayers > .titlebar {
+  background: #eee;
+  border-bottom: 1px solid #bbb;
+  height: 30px;
+  position: relative;
+}
+
+.audiolayers > .audiolayers-container {
+  height: calc(100% - 31px);
+  overflow-y: scroll;
+}
+
+.audiolayers > .titlebar > span {
+  color: #3f3f3f;
+  line-height: 30px;
+  margin-left: 5px;
+  font-size: 17px;
+}
+
+.audiolayers > .titlebar > .menubar {
+  position: absolute;
+  top: 0;
+  right: 0;
+  height: 100%;
+}
+
+.audiolayers > .titlebar > .menubar > button {
+  height: 20px;
+  margin: 5px 5px 0 0;
+  background: white;
+  border: 1px solid #bbb;
+  line-height: 20px;
+}
+
+</style>

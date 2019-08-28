@@ -8,7 +8,8 @@
             :paths="layers.filter(l => l.source === 'simplepaths')"></PathsList>
           </SplitArea>
           <SplitArea :size="80">
-            <AudioPanel></AudioPanel>
+            <AudioPanel :layers="layers.filter(l => l.source === 'audiopaths')" @actived="firstLayer=$event" @updateLayer="updateLayer"
+            @deleteLayer="deleteLayer" @addLayer="addLayer('audiopaths', $event.layer, $event.callback)"></AudioPanel>
           </SplitArea>
         </Split>
       </SplitArea>
@@ -83,7 +84,7 @@ export default {
       if (e.y) this.yRange = [e.y[0], e.y[1]]
       if (e.x) this.xRelRange = [e.x[0], e.x[1]]
     },
-    addLayer (sourceName, data) {
+    addLayer (sourceName, data, callback) {
       if (!data || !data.trace || !Array.isArray(data.trace.x) || !Array.isArray(data.trace.y) || data.trace.x.length !== data.trace.y.length) return
       data.name = data.name ? data.name + '' : 'unnamed'
       data.source = sourceName
@@ -91,8 +92,10 @@ export default {
       data.visible = true
       data.color = 'black'
       data.isFirst = false
+      if (data.deletable !== false) data.deletable = true
       this.nextId += 1
       this.layers.push(data)
+      if (callback) callback(data.layerId)
     },
     deleteLayer (id) {
       this.layers = this.layers.filter(l => l.layerId !== id)
