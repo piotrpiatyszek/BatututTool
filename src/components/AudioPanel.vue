@@ -67,6 +67,16 @@ export default {
       return this.layers.filter(l => activeLayersIds[l.layerId])
     }
   },
+  watch: {
+    sharedConfigurations (newValue) {
+      var ids = newValue.map(c => c.confId)
+      this.audioSources.filter(s => s.sharedConf !== -1 && !ids.includes(s.sharedConf)).forEach((s,index) => {
+        s.sharedConf = -1
+        this.$set(this.audioSources, index, s)
+        this.refreshLayers(s.sourceId)
+      })
+    }
+  },
   methods: {
     exportToLayer () {
       var firstLayer = this.layers.find(l => l.isFirst)
