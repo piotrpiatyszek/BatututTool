@@ -85,6 +85,7 @@ export default {
       var index = this.audioSources.findIndex(s => s.sourceId === newSource.sourceId)
       if (index < 0) return
       this.$set(this.audioSources, index, Object.assign({}, this.audioSources[index], newSource))
+      if (newSource.sharedConf !== undefined) this.refreshLayers(newSource.sourceId)
     },
     deleteSource (sourceId) {
       var source = this.audioSources.find(s => s.sourceId === sourceId)
