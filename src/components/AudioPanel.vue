@@ -58,23 +58,15 @@ export default {
       return this.sharedConfigurations.find(c => c.confId === this.activeConfId)
     },
     activeAudioLayers () {
-      var activeLayersIds = {}
-      if (this.activeSource) {
-        this.activeSource.layers.forEach(l => {
-          if (l.layerId) activeLayersIds[l.layerId] = true
-        })
-      }
-      return this.layers.filter(l => activeLayersIds[l.layerId])
+      var activeLayersIds = []
+      if (this.activeSource) activeLayersIds = this.activeSource.layers.filter(l => l.layerId).map(l => l.layerId)
+      return this.layers.filter(l => activeLayersIds.includes(l.layerId))
     }
   },
   watch: {
     sharedConfigurations (newValue) {
       var ids = newValue.map(c => c.confId)
-      this.audioSources.filter(s => s.sharedConf !== -1 && !ids.includes(s.sharedConf)).forEach((s,index) => {
-        s.sharedConf = -1
-        this.$set(this.audioSources, index, s)
-        this.refreshLayers(s.sourceId)
-      })
+      this.audioSources.filter(s => !ids.includes(s.sharedConf)).forEach(s => this.updateSource({ sourceId: s.sourceId, sharedConf: -1 }))
     }
   },
   methods: {
@@ -86,8 +78,7 @@ export default {
         if (!layer) return
         var offset = layer.range ? layer.range[0] : 0
         var newRange = [offset + this.selection.indexRange[0], offset + this.selection.indexRange[1]]
-        s.layers.push({ range: newRange })
-        this.refreshLayers(s.sourceId)
+        this.updateSource({ sourceId: s.sourceId, layers: [...s.layers, { range: newRange }] })
       })
     },
     updateSource (newSource) {
@@ -95,7 +86,7 @@ export default {
       var index = this.audioSources.findIndex(s => s.sourceId === newSource.sourceId)
       if (index < 0) return
       this.$set(this.audioSources, index, Object.assign({}, this.audioSources[index], newSource))
-      if (newSource.sharedConf !== undefined) this.refreshLayers(newSource.sourceId)
+      if (newSource.sharedConf !== undefined || newSource.layers !== undefined) this.refreshLayers(newSource.sourceId)
     },
     deleteSource (sourceId) {
       var source = this.audioSources.find(s => s.sourceId === sourceId)
@@ -135,7 +126,7 @@ export default {
     },
     deleteLayer (layerId) {
       this.audioSources.forEach(s => {
-        if (s.layers) this.$set(s, 'layers', s.layers.filter(l => l.layerId !== layerId))
+        if (s.layers.findIndex(l => l.layerId === layerId) >= 0) this.updateSource({ sourceId: s.sourceId, layers: s.layers.filter(l => l.layerId !== layerId) })
       })
       this.$emit('deleteLayer', layerId)
     },
@@ -165,7 +156,7 @@ export default {
             tracePart = trace
           }
 
-          if (l.layerId) {
+          if (l.layerId && this.layers.map(layer => layer.layerId).includes(l.layerId)) {
             this.$emit('updateLayer', { layerId: l.layerId, trace: tracePart })
           } else {
             this.$emit('addLayer', {
