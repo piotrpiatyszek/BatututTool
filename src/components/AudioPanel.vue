@@ -142,16 +142,18 @@ export default {
     refreshLayers (sourceId) {
       var source = this.audioSources.find(s => s.sourceId === sourceId)
       if (!source) return
-      // TODO backend
       source.request = { waiting: true, id: {} }
       var requestId = source.request.id
-      setTimeout(() => {
+      this.$http.post('http://localhost:8092/pitch', {
+        audio: source.dataURL.split(',')[1],
+        configuration: this.sharedConfigurations.find(c => c.confId === source.sharedConf) || source.conf
+      }).then(response => {
         var source2 = this.audioSources.find(s => s.sourceId === sourceId)
         if (!source2) return
         if (requestId !== source2.request.id) return // Next request was sent
         this.$set(source2.request, 'waiting', false)
-        var trace = { x: [...Array(50).keys()], y: [...Array(50).keys()] }
-        trace.y.sort((e1, e2) => Math.random() - Math.random())
+        this.$set(source2.request, 'error', false)
+        var trace = response.body
         source2.layers.forEach((l, index) => {
           var tracePart = {}
           if (l.range) {
@@ -180,7 +182,13 @@ export default {
             })
           }
         })
-      }, 2000)
+      }, response => {
+        var source2 = this.audioSources.find(s => s.sourceId === sourceId)
+        if (!source2) return
+        if (requestId !== source2.request.id) return // Next request was sent
+        this.$set(source2.request, 'waiting', false)
+        this.$set(source2.request, 'error', true)
+      })
     },
     addConf (conf) {
       if (!AudioConfig.validate(conf)) return

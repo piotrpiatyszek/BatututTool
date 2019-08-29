@@ -10,7 +10,7 @@
     </div>
     <div class="sources-container" @click.self="$emit('actived', null)">
       <AudioSource v-for="s in sources" :key="s.sourceId" :isActive="s.sourceId === activeSource" :name="s.name" :choosenConf="s.sharedConf"
-      :isPlaying="s.playing" :configurations="configurations" @play="play(s.sourceId)" :isWaiting="s.request.waiting"
+      :isPlaying="s.playing" :configurations="configurations" @play="play(s.sourceId)" :isWaiting="s.request.waiting" :isError="s.request.error"
       @delete="$emit('delete', s.sourceId)" @stop="stop(s.sourceId)" @actived="$emit('actived', s.sourceId)" @download="download(s.sourceId)"
       @duplicate="duplicate(s.sourceId)" @update="$emit('update', Object.assign($event, { sourceId: s.sourceId }))">
       </AudioSource>

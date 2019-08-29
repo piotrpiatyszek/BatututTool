@@ -4,6 +4,7 @@
     <input class="sourcename" type="text" :value="name" @keyup.enter="onNameEdited($event.target.value)" v-if="nameEdit">
     <div class="menubar">
       <span v-if="isWaiting" style="color: red">⟳ </span>
+      <span v-if="isError" style="color: red">❌ </span>
       <button v-if="!isPlaying" @click="$emit('play')">▶</button>
       <button v-if="isPlaying" @click="$emit('stop')">■</button>
       <button @click="$emit('duplicate')">⎘</button>
@@ -26,6 +27,7 @@ export default {
   props: {
     isActive: Boolean,
     isWaiting: Boolean,
+    isError: Boolean,
     isPlaying: Boolean,
     configurations: Array,
     choosenConf: Number,
