@@ -182,10 +182,10 @@ export default {
       if (newConf.confId) {
         var index = this.sharedConfigurations.findIndex(c => c.confId === newConf.confId)
         if (index < 0) return
-        this.$set(this.sharedConfigurations, index, Object.assign({}, newConf))
+        this.$set(this.sharedConfigurations, index, Object.assign(this.sharedConfigurations[index], newConf))
         this.audioSources.filter(s => s.sharedConf === newConf.confId).forEach(s => this.refreshLayers(s.sourceId))
       } else {
-        this.updateSource({ sourceId: this.activeSourceId, conf: Object.assign({}, newConf) })
+        this.updateSource({ sourceId: this.activeSourceId, conf: Object.assign(this.sharedConfigurations[index], newConf) })
         this.refreshLayers(this.activeSourceId)
       }
     },
