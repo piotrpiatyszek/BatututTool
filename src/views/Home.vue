@@ -4,11 +4,11 @@
       <SplitArea :size="25">
         <Split style="height: 100%;" direction="horizontal">
           <SplitArea :size="20">
-            <PathsList @addLayer="addLayer('simplepaths', $event)" @deleteLayer="deleteLayer" @updateLayer="updateLayer" @actived="firstLayer=$event"
+            <PathsList @addLayer="addLayer('simplepaths', $event)" @deleteLayer="deleteLayer" @updateLayer="updateLayer" @actived="firstLayerId=$event"
             :paths="layers.filter(l => l.source === 'simplepaths')"></PathsList>
           </SplitArea>
           <SplitArea :size="80">
-            <AudioPanel :layers="layers.filter(l => l.source === 'audiopaths')" :selection="lastSelect" @actived="firstLayer=$event" @updateLayer="updateLayer"
+            <AudioPanel :layers="layers.filter(l => l.source === 'audiopaths')" :selection="lastSelect" @actived="firstLayerId=$event" @updateLayer="updateLayer"
             @deleteLayer="deleteLayer" @addLayer="addLayer('audiopaths', $event.layer, $event.callback)"></AudioPanel>
           </SplitArea>
         </Split>
@@ -16,12 +16,12 @@
       <SplitArea :size="75" style="position: relative">
         <div class="layers-bar">
           <button v-for="layer in visibleLayers" :key="layer.layerId" v-bind:class="{active: layer.isFirst}"
-          v-bind:style="{background: firstLayer==layer.layerId ? layer.color : 'white', border: '3px solid ' + layer.color }" @click="firstLayer=layer.layerId">{{ layer.layerId }}</button>
+          v-bind:style="{background: firstLayerId==layer.layerId ? layer.color : 'white', border: '3px solid ' + layer.color }" @click="firstLayerId=layer.layerId">{{ layer.layerId }}</button>
           <button v-bind:class="{active: holdXShift}" v-bind:style="{background: holdXShift ? 'grey':'white', border: '3px solid grey'}" @click="holdXShift=!holdXShift">🔒</button>
-          <button v-bind:style="{border: '3px solid grey'}" @click="deleteLayer(firstLayer)">❌</button>
+          <button v-bind:style="{border: '3px solid grey'}" @click="deleteLayer(firstLayerId)" v-if="firstLayerId && firstLayer.deletable">❌</button>
           <button v-if="lastSelect" v-bind:style="{border: '3px solid grey'}" @click="selectToPath">Save to path</button>
         </div>
-        <div class="plotLayerContainer" v-for="layer in visibleLayers" :key="layer.layerId" :style="{zIndex: layer.layerId==firstLayer ? 1000:0}">
+        <div class="plotLayerContainer" v-for="layer in visibleLayers" :key="layer.layerId" :style="{zIndex: layer.layerId==firstLayerId ? 1000:0}">
           <PitchEnergyPlot :trace="layer.trace" :isFirst="layer.isFirst" :layerId="layer.layerId" :color="layer.color" :yRange="yRange" :xRelRange="xRelRange"
           :holdXShift="holdXShift" :selection="lastSelect" :energy="layer.energy" :layerName="layer.name" @update="onRescale" @selection="onSelection"></PitchEnergyPlot>
         </div>
@@ -43,7 +43,7 @@ export default {
     PathsList
   },
   watch: {
-    firstLayer (newValue) {
+    firstLayerId (newValue) {
       this.layers.forEach((l, index) => {
         l.isFirst = l.layerId === newValue
         this.$set(this.layers, index, l)
@@ -51,22 +51,25 @@ export default {
       this.lastSelect = null
     },
     layers (newValue) {
-      var index = newValue.findIndex(l => l.layerId === this.firstLayer && l.visible)
+      var index = newValue.findIndex(l => l.layerId === this.firstLayerId && l.visible)
       if (index < 0) {
         var firstVisible = this.layers.find(l => l.visible)
-        if (firstVisible) this.firstLayer = firstVisible.layerId
+        if (firstVisible) this.firstLayerId = firstVisible.layerId
       }
     }
   },
   computed: {
     visibleLayers () {
       return this.layers.filter(l => l.visible)
+    },
+    firstLayer () {
+      return this.layers.find(l => l.layerId === this.firstLayerId)
     }
   },
   data: function () {
     return {
       layers: [],
-      firstLayer: -1,
+      firstLayerId: -1,
       yRange: [0, 250],
       xRelRange: [0, 10],
       holdXShift: true,
