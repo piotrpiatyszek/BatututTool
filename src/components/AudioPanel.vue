@@ -67,6 +67,11 @@ export default {
     sharedConfigurations (newValue) {
       var ids = newValue.map(c => c.confId)
       this.audioSources.filter(s => !ids.includes(s.sharedConf)).forEach(s => this.updateSource({ sourceId: s.sourceId, sharedConf: -1 }))
+    },
+    layers (newValue, oldValue) {
+      var layerIds = newValue.map(l => l.layerId)
+      var oldLayerIds = oldValue.map(l => l.layerId)
+      oldLayerIds.filter(layerId => !layerIds.includes(layerId)).forEach(this.deleteLayer)
     }
   },
   methods: {

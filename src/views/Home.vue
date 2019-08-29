@@ -18,7 +18,7 @@
           <button v-for="layer in visibleLayers" :key="layer.layerId" v-bind:class="{active: layer.isFirst}"
           v-bind:style="{background: firstLayerId==layer.layerId ? layer.color : 'white', border: '3px solid ' + layer.color }" @click="firstLayerId=layer.layerId">{{ layer.layerId }}</button>
           <button v-bind:class="{active: holdXShift}" v-bind:style="{background: holdXShift ? 'grey':'white', border: '3px solid grey'}" @click="holdXShift=!holdXShift">🔒</button>
-          <button v-bind:style="{border: '3px solid grey'}" @click="deleteLayer(firstLayerId)" v-if="firstLayerId && firstLayer.deletable">❌</button>
+          <button v-bind:style="{border: '3px solid grey'}" @click="deleteLayer(firstLayerId)" v-if="firstLayer && firstLayer.deletable">❌</button>
           <button v-if="lastSelect" v-bind:style="{border: '3px solid grey'}" @click="selectToPath">Save to path</button>
         </div>
         <div class="plotLayerContainer" v-for="layer in visibleLayers" :key="layer.layerId" :style="{zIndex: layer.layerId==firstLayerId ? 1000:0}">
