@@ -8,18 +8,12 @@
 import Plotly from 'plotly.js'
 import resize from 'vue-resize-directive'
 import bs from 'binary-search'
-import tinycolor from 'tinycolor2'
 
 export default {
   name: 'PitchEnergyPlot',
   props: {
-    trace: Object,
-    energy: Object,
-    color: String,
-    isFirst: Boolean,
+    layer: Object,
     yRange: Array,
-    layerId: Number,
-    layerName: String,
     xRelRange: Array,
     holdXShift: Boolean,
     selection: Object
@@ -29,24 +23,29 @@ export default {
     isFirst: 'onChangeIsFirst',
     plotLayout (newValue) {
       if (this.$refs.plotcontainer) Plotly.relayout(this.$refs.plotcontainer, newValue)
+    },
+    layer (newValue) {
+      if (newValue.energy !== this.energy) this.energy = newValue.energy
+      if (newValue.trace !== this.trace) this.trace = newValue.trace
+      if (newValue.isFirst !== this.isFirst) this.isFirst = newValue.isFirst
     }
   },
   data: function () {
     return {
-      selected: null,
       size: { width: 0, height: 0 },
-      xShift: 0
+      trace: this.layer.trace,
+      energy: this.layer.energy,
+      isFirst: this.layer.isFirst
     }
   },
   computed: {
     energyTrace () {
-      if (this.energy && this.energy.mid.length >= 2) {
+      if (this.energy && this.energy.mids.length >= 2 && this.layer.plotEnergyWidthLine) {
         var data = []
-        var mids = this.energy.mid
-        var values = this.energy.value
-        var maxEnergy = Math.max(...values)
+        var mids = this.energy.mids
+        var values = this.energy.values
 
-        var getTrace = function (trace, start, stop, light) {
+        var getTrace = function (trace, start, stop, energy) {
           if (start < 0) start = 0
           if (stop > trace.x.length) stop = trace.x.length
           return {
@@ -54,15 +53,14 @@ export default {
             y: trace.y.slice(start, stop + 1),
             mode: 'lines',
             line: {
-              width: 2,
-              light: light // For color calculation
+              width: 1 + Math.round(energy * 6)
             }
           }
         }
 
-        for (var i = 1; i < this.energy.mid.length; i++) {
-          var energy = Math.floor((((values[i] + values[i - 1]) / 2) / maxEnergy) * 60)
-          data.push(getTrace(this.trace, mids[i - 1], mids[i], 60 - energy))
+        for (var i = 1; i < this.energy.mids.length; i++) {
+          var energy = (values[i] + values[i - 1]) / 2
+          data.push(getTrace(this.trace, mids[i - 1], mids[i], energy))
         }
         return data
       }
@@ -81,7 +79,7 @@ export default {
         xaxis: {
           nticks: 50,
           autorange: false,
-          range: [this.xShift + this.xRelRange[0], this.xShift + this.xRelRange[1]]
+          range: [this.layer.xShift + this.xRelRange[0], this.layer.xShift + this.xRelRange[1]]
         },
         yaxis: {
           range: [this.yRange[0], this.yRange[1]],
@@ -95,7 +93,7 @@ export default {
         height: this.size.height
       }
 
-      if (this.selection && this.selection.layerId === this.layerId) {
+      if (this.selection && this.selection.layerId === this.layer.layerId) {
         var s = this.selection
         var shape = {
           type: 'rect',
@@ -154,8 +152,8 @@ export default {
 
       if (this.energyTrace) {
         this.energyTrace.forEach(t => {
-          t.line.color = tinycolor(this.color).lighten(t.line.light).toString()
-          t.name = this.layerName
+          t.line.color = this.layer.color
+          t.name = this.layer.name
         })
         data = data.concat(this.energyTrace)
       } else {
@@ -163,15 +161,15 @@ export default {
           x: this.trace.x,
           y: this.trace.y,
           mode: 'lines',
-          name: this.layerName,
+          name: this.layer.name,
           line: {
             width: 2,
-            color: this.color ? this.color : ''
+            color: this.layer.color
           }
         })
       }
 
-      if (this.selection && this.selection.layerId === this.layerId && this.selection.pitchRanges) {
+      if (this.selection && this.selection.layerId === this.layer.layerId && this.selection.pitchRanges) {
         this.selection.pitchRanges.forEach(range => {
           var start = range[0] >= 0 ? range[0] : 0
           var stop = range[1] < this.trace.x.length ? range[1] : this.trace.x.length - 1
@@ -218,16 +216,17 @@ export default {
         this.$emit('update', { y: newRangeY })
       }
       if (Math.abs(newRangeX[1] - newRangeX[0] - this.xRelRange[1] + this.xRelRange[0]) < 0.0001 && !this.holdXShift) {
-        this.xShift = newRangeX[0] - this.xRelRange[0]
+        var newXShift = newRangeX[0] - this.xRelRange[0]
+        if (Math.abs(this.layer.xShift - newXShift) > 0.0001) this.$emit('updateLayer', this.layer.update({ xShift: newXShift }))
       } else {
-        var newXRelRange = [newRangeX[0] - this.xShift, newRangeX[1] - this.xShift]
+        var newXRelRange = [newRangeX[0] - this.layer.xShift, newRangeX[1] - this.layer.xShift]
         if (newXRelRange[0] !== this.xRelRange[0] || newXRelRange[1] !== this.xRelRange[1]) {
           this.$emit('update', { x: newXRelRange })
         }
       }
     },
     closeSelect: function () {
-      this.$emit('selection', { layerId: this.layerId, close: true })
+      this.$emit('selection', { layerId: this.layer.layerId, close: true })
     },
     onSelect: function (e) {
       if (!e || !e.range) return this.closeSelect() // Only box select
@@ -270,7 +269,7 @@ export default {
         timeRange,
         indexRange,
         valueRange,
-        layerId: this.layerId
+        layerId: this.layer.layerId
       }
       this.$emit('selection', event)
     },
@@ -284,7 +283,7 @@ export default {
     resize
   },
   beforeDestroy () {
-    this.$emit('selected', null)
+    this.closeSelect()
   }
 }
 </script>

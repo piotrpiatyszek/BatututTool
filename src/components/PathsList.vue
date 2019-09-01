@@ -8,9 +8,8 @@
       </div>
     </div>
     <div class="paths-container">
-      <PathItem v-for="path in paths" :deletable="true" :key="path.layerId" :layerId="path.layerId" :name="path.name" :visible="path.visible"
-      :layerColor="path.color" :isActive="path.isFirst" @update="$emit('updateLayer', $event)" @delete="$emit('deleteLayer', $event)"
-      @download="downloadPath" @actived="$emit('actived', path.layerId)">
+      <PathItem v-for="path in paths" :path="path" :key="path.layerId" @update="$emit('updateLayer', $event)" @delete="$emit('deleteLayer', $event)"
+      @actived="$emit('actived', path.layerId)">
       </PathItem>
     </div>
   </div>
@@ -18,7 +17,7 @@
 
 <script>
 import PathItem from '@/components/PathItem.vue'
-import { saveAs } from 'file-saver'
+import Layer from '@/lib/Layer.js'
 
 export default {
   name: 'PathsList',
@@ -26,12 +25,6 @@ export default {
     paths: Array
   },
   methods: {
-    downloadPath (layerId) {
-      var path = this.paths.find(path => path.layerId === layerId)
-      if (!path) return
-      var json = JSON.stringify({ x: path.trace.x, y: path.trace.y, name: path.name, color: path.color })
-      saveAs(new Blob([json], { type: 'application/json', name: path.name + '.json' }), path.name + '.json')
-    },
     loadFiles (event) {
       for (var file of event.target.files) {
         var reader = new FileReader()
@@ -44,21 +37,11 @@ export default {
       }
     },
     loadPath (p) {
-      if (!p) return
-      var trace = p.trace ? p.trace : p
-      if (trace && Array.isArray(trace.x) && Array.isArray(trace.y) && trace.x.length === trace.y.length) {
-        var path = {
-          name: p.name ? p.name + '' : 'unnamed',
-          trace: {
-            x: trace.x,
-            y: trace.y
-          }
-        }
-        if (p.energy && Array.isArray(p.energy.mid) && Array.isArray(p.energy.value) && p.energy.value.length === p.energy.mid.length) {
-          path.energy = p.energy
-        }
-        this.$emit('addLayer', path)
-      }
+      if (!p) throw new Error('[PathsList loadPath] Empty path argument')
+      var path = Object.assign({}, p)
+      if (!path.trace) path.trace = { x: path.x, y: path.y } // Support old format
+      path.source = 'simplepaths'
+      this.$emit('addLayer', new Layer(path))
     }
   },
   components: {

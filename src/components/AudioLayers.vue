@@ -7,8 +7,8 @@
       </div>
     </div>
     <div class="audiolayers-container">
-      <PathItem v-for="l in layers" :key="l.layerId" :deletable="l.deletable" :layerId="l.layerId" :name="l.name" :visible="l.visible" :layerColor="l.color" :isActive="l.isFirst"
-      @update="$emit('updateLayer', $event)" @delete="$emit('deleteLayer', $event)" @download="downloadLayer" @actived="$emit('actived', l.layerId)">
+      <PathItem v-for="l in layers" :key="l.layerId" :path="l" @update="$emit('updateLayer', $event)" @delete="$emit('deleteLayer', $event)"
+      @actived="$emit('actived', l.layerId)">
       </PathItem>
     </div>
   </div>
@@ -16,21 +16,12 @@
 
 <script>
 import PathItem from '@/components/PathItem.vue'
-import { saveAs } from 'file-saver'
 
 export default {
   name: 'AudioLayers',
   props: {
     layers: Array,
     displayExportButton: Boolean
-  },
-  methods: {
-    downloadLayer (layerId) {
-      var layer = this.layers.find(l => l.layerId === layerId)
-      if (!layer) return
-      var json = JSON.stringify({ x: layer.trace.x, y: layer.trace.y, name: layer.name, color: layer.color })
-      saveAs(new Blob([json], { type: 'application/json', name: layer.name + '.json' }), layer.name + '.json')
-    }
   },
   components: {
     PathItem

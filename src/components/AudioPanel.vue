@@ -31,6 +31,7 @@ import AudioConfiguration from '@/components/AudioConfiguration.vue'
 import ConfsList from '@/components/ConfsList.vue'
 import AudioConfig from '@/lib/configuration.js'
 import AudioLayers from '@/components/AudioLayers.vue'
+import Layer from '@/lib/Layer.js'
 
 export default {
   name: 'AudioPanel',
@@ -66,7 +67,7 @@ export default {
   watch: {
     sharedConfigurations (newValue) {
       var ids = newValue.map(c => c.confId)
-      this.audioSources.filter(s => !ids.includes(s.sharedConf)).forEach(s => this.updateSource({ sourceId: s.sourceId, sharedConf: -1 }))
+      this.audioSources.filter(s => s.sharedConf !== -1 && !ids.includes(s.sharedConf)).forEach(s => this.updateSource({ sourceId: s.sourceId, sharedConf: -1 }))
     },
     layers (newValue, oldValue) {
       var layerIds = newValue.map(l => l.layerId)
@@ -149,33 +150,24 @@ export default {
         if (requestId !== source2.request.id) return // Next request was sent
         this.$set(source2.request, 'waiting', false)
         this.$set(source2.request, 'error', false)
-        var trace = response.body
-        source2.layers.forEach((l, index) => {
-          var tracePart = {}
-          if (l.range) {
-            var start = l.range[0] >= 0 ? l.range[0] : 0
-            var end = l.range[1] > start ? l.range[1] : start
-            tracePart.x = trace.x.slice(start, end + 1)
-            tracePart.y = trace.y.slice(start, end + 1)
-          } else {
-            tracePart = trace
-          }
 
-          if (l.layerId && this.layers.map(layer => layer.layerId).includes(l.layerId)) {
-            this.$emit('updateLayer', { layerId: l.layerId, trace: tracePart })
+        source2.layers.forEach((layerMeta, index) => {
+          var fullLayer = layerMeta.range === null
+          var layer = layerMeta.layerId ? this.layers.find(l => l.layerId === layerMeta.layerId) : null
+          var addNewLayer = !layer
+          if (addNewLayer) {
+            layer = new Layer(Object.assign(response.body, { name: fullLayer ? 'Full' : '', deletable: !fullLayer, source: 'audiopaths' }))
           } else {
-            this.$emit('addLayer', {
-              layer: {
-                trace: tracePart,
-                name: l.range ? '' : 'Full',
-                deletable: !!l.range
-              },
-              callback: (layerId) => {
-                if (!l || !source2) return
-                l.layerId = layerId
-                this.$set(source2.layers, index, l)
-              }
-            })
+            layer = layer.update(response.body)
+          }
+          if (layerMeta.range) {
+            layer = layer.slice(layerMeta.range)
+          }
+          if (addNewLayer) {
+            this.$emit('addLayer', layer)
+            this.$set(layerMeta, 'layerId', layer.layerId)
+          } else {
+            this.$emit('updateLayer', layer)
           }
         })
       }, response => {
