@@ -3,6 +3,7 @@
     <div class="titlebar">
       <span>Audio Configuration</span>
       <div class="menubar">
+        <button @click="resetConfig">⟳</button>
       </div>
     </div>
     <div class="configuration" v-if="conf">
@@ -52,6 +53,9 @@ export default {
       }
       this.$set(this.error, name, error)
       this.$set(this.config, name, parsed)
+    },
+    resetConfig () {
+      Object.values(this.schema).forEach(s => this.onChange(s.name, s.value))
     },
     save () {
       for (var e in this.error) if (this.error[e]) return
