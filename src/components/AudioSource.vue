@@ -1,20 +1,20 @@
 <template>
   <div class="audiosource" v-bind:class="{active: isActive}" @click.self="$emit('actived')">
     <span class="sourcename" v-if="!nameEdit" @click="nameEdit=true">{{ visibleName }}</span>
-    <input class="sourcename" type="text" :value="name" @keyup.enter="onNameEdited($event.target.value)" v-if="nameEdit">
+    <input class="sourcename" type="text" :value="source.name" @keyup.enter="onNameEdited($event.target.value)" v-if="nameEdit">
     <div class="menubar">
-      <span v-if="isWaiting" style="color: red">⟳ </span>
-      <span v-if="isError" style="color: red">❌ </span>
-      <button v-if="!isPlaying" @click="$emit('play')">▶</button>
-      <button v-if="isPlaying" @click="$emit('stop')">■</button>
+      <span v-if="source.request.waiting" style="color: red">⟳ </span>
+      <span v-if="source.request.error" style="color: red">❌ </span>
+      <button v-if="!source.isPlaying" @click="source.play()">▶</button>
+      <button v-if="source.isPlaying" @click="source.stop()">■</button>
       <button @click="$emit('duplicate')">⎘</button>
       <button @click="confList=!confList" ref="conflistbutton">T</button>
-      <button @click="$emit('download')">⇩</button>
+      <button @click="source.download()">⇩</button>
       <button @click="$emit('delete')">❌</button>
     </div>
     <div class="conflist-container" v-if="confList" v-click-outside="hideConfList">
-      <div v-for="c in mergedConfs" :key="c.confId" :class="{active: choosenConf === c.confId}" class="conf"
-      @click="$emit('update', { sharedConf: c.confId })">{{ c.name }}</div>
+      <div v-for="c in mergedConfs" :key="c.confId" :class="{active: activeConf === c.confId}" class="conf"
+      @click="source.update({ sharedConf: c.confId === -1 ? undefined : c })">{{ c.name }}</div>
     </div>
   </div>
 </template>
@@ -25,21 +25,20 @@ import ClickOutside from 'vue-click-outside'
 export default {
   name: 'AudioSource',
   props: {
+    source: Object,
     isActive: Boolean,
-    isWaiting: Boolean,
-    isError: Boolean,
-    isPlaying: Boolean,
-    configurations: Array,
-    choosenConf: Number,
-    name: String
+    configurations: Array
   },
   computed: {
     visibleName () {
-      return (this.name ? this.name : 'unnamed').slice(0, 20)
+      return (this.source.name ? this.source.name : 'unnamed').slice(0, 20)
     },
     // Adds merge shared confs with fake own conf
     mergedConfs () {
       return [ ...this.configurations, { confId: -1, name: 'Own' } ]
+    },
+    activeConf () {
+      return this.source.sharedConf ? this.source.sharedConf.confId : -1
     }
   },
   data () {
@@ -50,7 +49,7 @@ export default {
   },
   methods: {
     onNameEdited (newName) {
-      this.$emit('update', { name: newName })
+      this.source.update({ name: newName })
       this.nameEdit = false
     },
     hideConfList () {

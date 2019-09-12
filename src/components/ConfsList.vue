@@ -43,7 +43,7 @@ export default {
         try {
           conf = JSON.parse(e.target.result)
         } catch (e) {
-          console.error(e)
+          throw new Error('[ConfsList loadFile] JSON parsing error: ', e)
         }
         if (conf) this.$emit('addConf', conf)
       }

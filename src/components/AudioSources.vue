@@ -3,16 +3,16 @@
     <div class="titlebar" @click.self="$emit('actived', null)">
       <span>Audio Sources</span>
       <div class="menubar">
-        <button v-if="false">•</button> <!-- TODO -->
+        <button v-if="!recorder" @click="startRecording">•</button> <!-- TODO -->
+        <button v-if="recorder" @click="stopRecording">STOP</button> <!-- TODO -->
+        <button v-if="displaySliceButton" @click="$emit('sliceAudio')">Slice</button>
         <button @click="$refs.fileinput.click()">📂</button>
         <input type="file" style="display: none" ref="fileinput" @change="loadFiles" multiple>
       </div>
     </div>
     <div class="sources-container" @click.self="$emit('actived', null)">
-      <AudioSource v-for="s in sources" :key="s.sourceId" :isActive="s.sourceId === activeSource" :name="s.name" :choosenConf="s.sharedConf"
-      :isPlaying="s.playing" :configurations="configurations" @play="play(s.sourceId)" :isWaiting="s.request.waiting" :isError="s.request.error"
-      @delete="$emit('delete', s.sourceId)" @stop="stop(s.sourceId)" @actived="$emit('actived', s.sourceId)" @download="download(s.sourceId)"
-      @duplicate="duplicate(s.sourceId)" @update="$emit('update', Object.assign($event, { sourceId: s.sourceId }))">
+      <AudioSource v-for="s in sources" :key="s.sourceId" :isActive="s.sourceId === activeSource" :configurations="configurations" :source="s"
+      @delete="$emit('delete', s.sourceId)" @actived="$emit('actived', s.sourceId)" @duplicate="$emit('addSource', s.duplicate())">
       </AudioSource>
     </div>
   </div>
@@ -20,72 +20,73 @@
 
 <script>
 import AudioSource from '@/components/AudioSource.vue'
-import { saveAs } from 'file-saver'
+import Source from '@/lib/AudioSource.js'
 
 export default {
   name: 'AudioSources',
   props: {
     sources: Array,
+    displaySliceButton: Boolean,
     activeSource: Number,
     configurations: Array
   },
   methods: {
+    startRecording () {
+      var self = this
+      navigator.mediaDevices.getUserMedia({ audio: true }).then(stream => {
+        self.recorder = new MediaRecorder(stream, { mimeType: 'audio/ogg' })
+        self.recorder.addEventListener('dataavailable', e => {
+          self.audioChunks.push(e.data)
+        })
+        self.recorder.addEventListener('stop', () => {
+          var blob = new Blob(self.audioChunks)
+          var reader = new FileReader()
+          var time = new Date().toString().replace(/.*(\d{2}):(\d{2}):(\d{2}).*/, '$1:$2:$3')
+          reader.onload = e => {
+            var base64Encoded = e.target.result.split(',')[1]
+            Source.fromOgg(base64Encoded).then(response => {
+              response.update({ name: time })
+              this.$emit('addSource', response)
+            }, response => {
+              throw new Error('Failed to convert recording to wav: ', response)
+            })
+            self.audioChunks = []
+          }
+          reader.readAsDataURL(blob)
+          stream.getTracks().forEach(track => track.stop())
+        })
+        self.audioChunks = []
+        self.recorder.start()
+      }).catch(e => {
+        self.recorder = null
+        self.audioChunks = []
+        throw new Error('[AudioSources startRecording] Cannot start recording: ', e)
+      })
+    },
+    stopRecording () {
+      this.recorder.stop()
+      this.recorder = null
+    },
     loadFiles (event) {
       for (var file of event.target.files) this.loadFile(file)
     },
     loadFile (file) {
       var reader = new FileReader()
       reader.onload = e => {
-        var audioSource
-        try {
-          var data = e.target.result
-          var mime = data.split(',')[0]
-          if (mime !== 'data:audio/x-wav;base64') {
-            throw new Error('[' + file.name + '] Expected type data:audio/x-wav;base64 but got ' + mime)
-          }
-          var audio = new Audio(data)
-          audioSource = {
-            audio,
-            name: file.name,
-            file,
-            dataURL: data
-          }
-        } catch (e) {
-          console.error(e)
-        }
-        if (audioSource) this.$emit('addSource', audioSource)
+        var audioSource = new Source({ dataURL: e.target.result, name: file.name })
+        this.$emit('addSource', audioSource)
       }
       reader.readAsDataURL(file)
-    },
-    play (sourceId) {
-      var source = this.sources.find(s => s.sourceId === sourceId)
-      if (source) source.audio.play()
-    },
-    stop (sourceId) {
-      var source = this.sources.find(s => s.sourceId === sourceId)
-      if (!source) return
-      source.audio.pause()
-      source.audio.currentTime = 0.0
-    },
-    download (sourceId) {
-      var source = this.sources.find(s => s.sourceId === sourceId)
-      if (!source) return
-      saveAs(source.file, source.name + '.wav')
-    },
-    duplicate (sourceId) {
-      var source = this.sources.find(s => s.sourceId === sourceId)
-      if (!source) return
-      var sourceCopy = {
-        audio: new Audio(source.dataURL),
-        dataURL: source.dataURL,
-        file: new Blob([source.file], { type: source.file.type }),
-        name: source.name + ' - Copy'
-      }
-      this.$emit('addSource', sourceCopy)
     }
   },
   components: {
     AudioSource
+  },
+  data () {
+    return {
+      recorder: null,
+      audioChunks: []
+    }
   }
 }
 </script>

@@ -3,12 +3,13 @@
     <Split style="height: 100%;" direction="horizontal">
       <SplitArea :size="25">
         <AudioSources :sources="audioSources" :activeSource="activeSourceId" :configurations="sharedConfigurations"
-        @delete="deleteSource" @update="updateSource" @actived="activeSourceId = $event ? $event : -1"
+        :displaySliceButton="selection && selection.horizontalSelect && layers.findIndex(l => l.layerId === selection.layerId) >= 0"
+        @delete="deleteSource" @actived="activeSourceId = $event ? $event : -1" @sliceAudio="sliceAudio"
         @addSource="addSource">
         </AudioSources>
       </SplitArea>
       <SplitArea :size="25">
-        <ConfsList :configurations="sharedConfigurations" :activeSourceConf="(activeSource || {}).conf"
+        <ConfsList :configurations="sharedConfigurations" :activeSourceConf="(activeSource || {}).privateConf"
         :activeConf="activeConfId" :activeSourceName="(activeSource || {}).name" @actived="activeConfId = $event"
         @addConf="addConf" @delete="deleteConf" @update="updateConf">
         </ConfsList>
@@ -55,19 +56,19 @@ export default {
       return this.audioSources.find(s => s.sourceId === this.activeSourceId)
     },
     activeConf () {
-      if (this.activeConfId === -1 && this.activeSource) return this.activeSource.conf
+      if (this.activeConfId === -1 && this.activeSource) return this.activeSource.privateConf
       return this.sharedConfigurations.find(c => c.confId === this.activeConfId)
     },
     activeAudioLayers () {
       var activeLayersIds = []
-      if (this.activeSource) activeLayersIds = this.activeSource.layers.filter(l => l.layerId).map(l => l.layerId)
+      if (this.activeSource) activeLayersIds = this.activeSource.layersMeta.filter(l => l.layerId).map(l => l.layerId)
       return this.layers.filter(l => activeLayersIds.includes(l.layerId))
     }
   },
   watch: {
     sharedConfigurations (newValue) {
       var ids = newValue.map(c => c.confId)
-      this.audioSources.filter(s => s.sharedConf !== -1 && !ids.includes(s.sharedConf)).forEach(s => this.updateSource({ sourceId: s.sourceId, sharedConf: -1 }))
+      this.audioSources.filter(s => s.sharedConf && !ids.includes(s.sharedConf.confId)).forEach(s => s.update({ sharedConf: undefined }))
     },
     layers (newValue, oldValue) {
       var layerIds = newValue.map(l => l.layerId)
@@ -80,103 +81,80 @@ export default {
       var firstLayer = this.layers.find(l => l.isFirst)
       if (!firstLayer) return
       this.audioSources.forEach(s => {
-        var layer = s.layers.find(l => l.layerId === firstLayer.layerId)
+        var layer = s.layersMeta.find(l => l.layerId === firstLayer.layerId)
         if (!layer) return
         var offset = layer.range ? layer.range[0] : 0
         var newRange = [offset + this.selection.indexRange[0], offset + this.selection.indexRange[1]]
-        this.updateSource({ sourceId: s.sourceId, layers: [...s.layers, { range: newRange }] })
+        s.update({ layersMeta: [...s.layersMeta, { range: newRange }] })
+      })
+    },
+    sliceAudio () {
+      var firstLayer = this.layers.find(l => l.isFirst)
+      if (!firstLayer) throw new Error('[AudioPanel sliceAudio] Missing first layer')
+      var source = this.audioSources.find(s => {
+        return s.layersMeta.findIndex(l => l.layerId === firstLayer.layerId) >= 0
+      })
+      if (!source) throw new Error('[AudioPanel sliceAudio] Missing audio source for layerId')
+      source.slice(this.selection.timeRange[0] * 1000, this.selection.timeRange[1] * 1000).then(resolve => {
+        this.addSource(resolve)
+      }, resolve => {
+        throw new Error('[AudioPanel sliceaudio] Failed to slice audio: ', resolve)
       })
     },
     updateSource (newSource) {
-      if (!newSource || !newSource.sourceId) return
+      if (!newSource) throw new Error('[AudioPanel updateSource] Empty source')
       var index = this.audioSources.findIndex(s => s.sourceId === newSource.sourceId)
-      if (index < 0) return
-      this.$set(this.audioSources, index, Object.assign({}, this.audioSources[index], newSource))
-      if (newSource.sharedConf !== undefined || newSource.layers !== undefined) this.refreshLayers(newSource.sourceId)
+      if (index < 0) throw new Error('[AudioPanel updateSource] Could not find source')
+      this.$set(this.audioSources, index, newSource.getProxy())
     },
     deleteSource (sourceId) {
       var source = this.audioSources.find(s => s.sourceId === sourceId)
-      if (source && source.audio) source.audio.pause()
-      if (source && source.layers) {
-        source.layers.forEach(l => {
-          if (l.layerId) this.$emit('deleteLayer', l.layerId)
+      if (source) {
+        source.layersMeta.forEach(meta => {
+          if (meta.layerId) this.$emit('deleteLayer', meta.layerId)
         })
+        source.stop()
       }
       this.audioSources = this.audioSources.filter(s => s.sourceId !== sourceId)
     },
     addSource (source) {
-      if (!source || !source.audio || !source.dataURL || !source.file) return
-      source.sourceId = this.nextSourceId
-      this.nextSourceId += 1
-      source.name = source.name ? source.name + '' : 'unnamed'
-      source.sharedConf = -1
-      source.conf = AudioConfig.getDefaultConfig()
-      source.playing = false
-      source.layers = [ { range: null, layerId: null } ]
-      source.request = { waiting: false }
-      if (source.audio.error) console.error('[' + source.name + '] ' + source.audio.error.message)
-      else {
-        this.audioSources.push(source)
-        this.refreshLayers(source.sourceId)
-        source.audio.onerror = e => {
-          console.error('[' + source.name + '] ' + e.target.error.message)
-          this.deleteSource(source.sourceId)
+      if (!source) throw new Error('[AudioPanel addSource] Empty source')
+      var self = this
+      this.audioSources.push(source.getProxy())
+      source.update({
+        onerror (e, src) {
+          self.deleteSource(src.sourceId)
+          throw new Error('AudioSource error: ' + e)
+        },
+        onselfupdate () {
+          self.updateSource(source)
+        },
+        onlayerupdate (update, layerId, range) {
+          var layer = layerId ? self.layers.find(l => l.layerId === layerId) : null
+          var isNewLayer = !layer
+          if (isNewLayer) {
+            layer = new Layer(Object.assign({}, update, { name: range === null ? 'Full' : '', deletable: range !== null, source: 'audiopaths' }))
+          } else {
+            layer = layer.update(update)
+          }
+          if (range) {
+            layer = layer.slice(range)
+          }
+          if (isNewLayer) {
+            self.$emit('addLayer', layer)
+            return layer.layerId
+          } else {
+            self.$emit('updateLayer', layer)
+            return layer.layerId
+          }
         }
-        source.audio.onplay = source.audio.onplaying = e => {
-          this.updateSource({ sourceId: source.sourceId, playing: true })
-        }
-        source.audio.onpause = source.audio.onended = e => {
-          this.updateSource({ sourceId: source.sourceId, playing: false })
-        }
-      }
+      })
     },
     deleteLayer (layerId) {
       this.audioSources.forEach(s => {
-        if (s.layers.findIndex(l => l.layerId === layerId) >= 0) this.updateSource({ sourceId: s.sourceId, layers: s.layers.filter(l => l.layerId !== layerId) })
+        if (s.layersMeta.findIndex(l => l.layerId === layerId) >= 0) s.update({ layersMeta: s.layersMeta.filter(l => l.layerId !== layerId) })
       })
       this.$emit('deleteLayer', layerId)
-    },
-    refreshLayers (sourceId) {
-      var source = this.audioSources.find(s => s.sourceId === sourceId)
-      if (!source) return
-      source.request = { waiting: true, id: {} }
-      var requestId = source.request.id
-      this.$http.post('http://localhost:8092/pitch', {
-        audio: source.dataURL.split(',')[1],
-        configuration: this.sharedConfigurations.find(c => c.confId === source.sharedConf) || source.conf
-      }).then(response => {
-        var source2 = this.audioSources.find(s => s.sourceId === sourceId)
-        if (!source2) return
-        if (requestId !== source2.request.id) return // Next request was sent
-        this.$set(source2.request, 'waiting', false)
-        this.$set(source2.request, 'error', false)
-
-        source2.layers.forEach((layerMeta, index) => {
-          var fullLayer = layerMeta.range === null
-          var layer = layerMeta.layerId ? this.layers.find(l => l.layerId === layerMeta.layerId) : null
-          var addNewLayer = !layer
-          if (addNewLayer) {
-            layer = new Layer(Object.assign(response.body, { name: fullLayer ? 'Full' : '', deletable: !fullLayer, source: 'audiopaths' }))
-          } else {
-            layer = layer.update(response.body)
-          }
-          if (layerMeta.range) {
-            layer = layer.slice(layerMeta.range)
-          }
-          if (addNewLayer) {
-            this.$emit('addLayer', layer)
-            this.$set(layerMeta, 'layerId', layer.layerId)
-          } else {
-            this.$emit('updateLayer', layer)
-          }
-        })
-      }, response => {
-        var source2 = this.audioSources.find(s => s.sourceId === sourceId)
-        if (!source2) return
-        if (requestId !== source2.request.id) return // Next request was sent
-        this.$set(source2.request, 'waiting', false)
-        this.$set(source2.request, 'error', true)
-      })
     },
     addConf (conf) {
       if (!AudioConfig.validate(conf)) return
@@ -190,10 +168,10 @@ export default {
         var index = this.sharedConfigurations.findIndex(c => c.confId === newConf.confId)
         if (index < 0) return
         this.$set(this.sharedConfigurations, index, Object.assign({}, this.sharedConfigurations[index], newConf))
-        this.audioSources.filter(s => s.sharedConf === newConf.confId).forEach(s => this.refreshLayers(s.sourceId))
+        this.audioSources.filter(s => s.sharedConf && s.sharedConf.confId === newConf.confId).forEach(s => s.update({ sharedConf: Object.assign({}, this.sharedConfigurations[index], newConf) }))
       } else {
-        this.updateSource({ sourceId: this.activeSourceId, conf: Object.assign({}, this.sharedConfigurations[index], newConf) })
-        this.refreshLayers(this.activeSourceId)
+        if (!this.activeSource) throw new Error('[AudioPanel updateConf] Cannot update privateConf, active source is missing')
+        this.activeSource.update({ privateConf: Object.assign({}, this.sharedConfigurations[index], newConf) })
       }
     },
     deleteConf (confId) {

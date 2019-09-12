@@ -77,7 +77,6 @@ export default {
       yRange: [0, 250],
       xRelRange: [0, 10],
       holdXShift: true,
-      nextId: 1,
       lastSelect: null
     }
   },

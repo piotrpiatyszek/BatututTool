@@ -128,12 +128,14 @@ class Layer {
     var afterEnergyIndex
     if (this.energy.mids) {
       beforeEnergyIndex = this.energy.mids.findIndex(m => m > index) - 1
+      if (beforeEnergyIndex == -2) beforeEnergyIndex = this.energy.mids.length - 1
       afterEnergyIndex = this.energy.mids.findIndex(m => m >= index)
     } else {
       beforeEnergyIndex = this.energy.x.findIndex(x => x > this.trace.x[index]) - 1
+      if (beforeEnergyIndex == -2) beforeEnergyIndex = this.energy.x.length - 1
       afterEnergyIndex = this.energy.x.findIndex(x => x >= this.trace.x[index])
     }
-    if (beforeEnergyIndex < 0 && afterEnergyIndex < 0) throw new Error('[Layer getEnergyAtIndex] There is no energy point')
+    if (beforeEnergyIndex < 0 && afterEnergyIndex < 0) throw new Error('[Layer getEnergyAtIndex] There is no energy point before and after index: ' + index)
     if (beforeEnergyIndex < 0) beforeEnergyIndex = afterEnergyIndex
     if (afterEnergyIndex < 0) afterEnergyIndex = beforeEnergyIndex
     return (this.energy.values[beforeEnergyIndex] + this.energy.values[afterEnergyIndex]) / 2
