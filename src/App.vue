@@ -1,5 +1,5 @@
 <template>
-  <div class="home" id="app">
+  <div class="app" id="app">
     <Split style="height: 100%;" direction="vertical">
       <SplitArea :size="25">
         <Split style="height: 100%;" direction="horizontal">
@@ -62,7 +62,7 @@ import AudioLayers from '@/components/AudioLayers.vue'
 import Layer from '@/lib/Layer.js'
 
 export default {
-  name: 'home',
+  name: 'App',
   components: {
     PitchEnergyPlot,
     EnergyPlot,
@@ -167,7 +167,7 @@ export default {
         var layer = s.layersMeta.find(l => l.layerId === firstLayer.layerId)
         if (!layer) return
         var offset = layer.range ? layer.range[0] : 0
-        var newRange = [offset + this.selection.indexRange[0], offset + this.selection.indexRange[1]]
+        var newRange = [offset + this.lastSelect.indexRange[0], offset + this.lastSelect.indexRange[1]]
         s.update({ layersMeta: [...s.layersMeta, { range: newRange }] })
       })
     },
@@ -178,7 +178,7 @@ export default {
         return s.layersMeta.findIndex(l => l.layerId === firstLayer.layerId) >= 0
       })
       if (!source) throw new Error('[AudioPanel sliceAudio] Missing audio source for layerId')
-      source.slice(this.selection.timeRange[0] * 1000, this.selection.timeRange[1] * 1000).then(resolve => {
+      source.slice(this.lastSelect.timeRange[0] * 1000, this.lastSelect.timeRange[1] * 1000).then(resolve => {
         this.addSource(resolve)
       }, resolve => {
         throw new Error('[AudioPanel sliceaudio] Failed to slice audio: ', resolve)
@@ -265,7 +265,7 @@ export default {
 </script>
 
 <style>
-.home {
+.app {
   width: 100%;
   height: 100%;
   padding: 0;
