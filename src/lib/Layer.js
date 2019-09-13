@@ -1,4 +1,5 @@
 import { saveAs } from 'file-saver'
+import Vue from 'vue'
 
 var validators = {
   trace (trace) {
@@ -29,7 +30,8 @@ var defaultProps = {
   deletable: true,
   source: '',
   trace: undefined,
-  energy: undefined
+  energy: undefined,
+  features: {}
 }
 
 class Layer {
@@ -139,6 +141,22 @@ class Layer {
     if (beforeEnergyIndex < 0) beforeEnergyIndex = afterEnergyIndex
     if (afterEnergyIndex < 0) afterEnergyIndex = beforeEnergyIndex
     return (this.energy.values[beforeEnergyIndex] + this.energy.values[afterEnergyIndex]) / 2
+  }
+  getFeature (id) {
+    return new Promise((resolve, reject) => {
+      var self = this
+      Vue.http.post('http://localhost:8092/features/' + id, { trace: this.trace }).then(response => {
+        if (!response.body || !response.body.feature) throw new Error('Invalid server response')
+        resolve(self.update({ features: Object.assign({}, self.features, { [id]: response.body.feature }) }))
+      }, response => {
+        reject(new Error('Invalid server response'))
+      })
+    })
+  }
+  removeFeature (id) {
+    var copy = Object.assign({}, this.features)
+    delete copy[id]
+    return this.update({ features: copy })
   }
 }
 export default Layer

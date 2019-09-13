@@ -184,6 +184,27 @@ export default {
           })
         })
       }
+
+      Object.values(this.layer.features).forEach(f => {
+        if (f.type === 'line') {
+          data.push({
+            x: f.points.x,
+            y: f.points.y,
+            mode: 'lines+text',
+            text: f.params ? [Object.keys(f.params).map(k => k + ': ' + f.params[k].toFixed(2)).join('<br>')] : [],
+            textfont: { size: 18 },
+            textposition: 'left',
+            name: f.name
+          })
+        } else if (f.type === 'markers') {
+          data.push({
+            x: f.points.x,
+            y: f.points.y,
+            mode: 'markers',
+            name: f.name
+          })
+        }
+      })
       return data
     }
   },
