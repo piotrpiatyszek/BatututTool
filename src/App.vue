@@ -143,13 +143,13 @@ export default {
       if (e.xShift) this.updateLayer(layer.update({ xShift: e.xShift }))
     },
     addLayer (layer) {
-      if (!layer) throw new Error('[Home addLayer] empty layer argument')
+      if (!layer) throw new Error('[App addLayer] empty layer argument')
       this.layers.push(layer)
     },
     selectToPath () {
-      if (!this.lastSelect || !this.lastSelect.pitchRanges) throw new Error('[Home selectToPath] Empty or invalid selection')
+      if (!this.lastSelect || !this.lastSelect.pitchRanges) throw new Error('[App selectToPath] Empty or invalid selection')
       var layer = this.layers.find(l => l.layerId === this.lastSelect.layerId)
-      if (!layer) throw new Error('[Home selectToPath] Layer with id ' + this.lastSelect.layerId + ' does not exist')
+      if (!layer) throw new Error('[App selectToPath] Layer with id ' + this.lastSelect.layerId + ' does not exist')
       var xOffset = this.lastSelect.timeRange[0]
       var newLayer = layer.duplicate().sliceAndMerge(this.lastSelect.pitchRanges)
         .update({ name: layer.name + ' - Copy', source: 'simplepaths' }).moveX(-1 * xOffset)
@@ -157,7 +157,7 @@ export default {
     },
     updateLayer (layer) {
       var index = this.layers.findIndex(l => l.layerId === layer.layerId)
-      if (index < 0) throw new Error('[Home updateLayer] Could not find layer with id: ' + layer.layerId)
+      if (index < 0) throw new Error('[App updateLayer] Could not find layer with id: ' + layer.layerId)
       this.$set(this.layers, index, layer)
     },
     exportToLayer () {
@@ -173,21 +173,21 @@ export default {
     },
     sliceAudio () {
       var firstLayer = this.layers.find(l => l.isFirst)
-      if (!firstLayer) throw new Error('[AudioPanel sliceAudio] Missing first layer')
+      if (!firstLayer) throw new Error('[App sliceAudio] Missing first layer')
       var source = this.audioSources.find(s => {
         return s.layersMeta.findIndex(l => l.layerId === firstLayer.layerId) >= 0
       })
-      if (!source) throw new Error('[AudioPanel sliceAudio] Missing audio source for layerId')
+      if (!source) throw new Error('[App sliceAudio] Missing audio source for layerId')
       source.slice(this.lastSelect.timeRange[0] * 1000, this.lastSelect.timeRange[1] * 1000).then(resolve => {
         this.addSource(resolve)
       }, resolve => {
-        throw new Error('[AudioPanel sliceaudio] Failed to slice audio: ', resolve)
+        throw new Error('[App sliceaudio] Failed to slice audio: ', resolve)
       })
     },
     updateSource (newSource) {
-      if (!newSource) throw new Error('[AudioPanel updateSource] Empty source')
+      if (!newSource) throw new Error('[App updateSource] Empty source')
       var index = this.audioSources.findIndex(s => s.sourceId === newSource.sourceId)
-      if (index < 0) throw new Error('[AudioPanel updateSource] Could not find source')
+      if (index < 0) throw new Error('[App updateSource] Could not find source')
       this.$set(this.audioSources, index, newSource.getProxy())
     },
     deleteSource (sourceId) {
@@ -201,7 +201,7 @@ export default {
       this.audioSources = this.audioSources.filter(s => s.sourceId !== sourceId)
     },
     addSource (source) {
-      if (!source) throw new Error('[AudioPanel addSource] Empty source')
+      if (!source) throw new Error('[App addSource] Empty source')
       var self = this
       this.audioSources.push(source.getProxy())
       source.update({
@@ -258,7 +258,7 @@ export default {
         this.$set(this.sharedConfigurations, index, Object.assign({}, this.sharedConfigurations[index], newConf))
         this.audioSources.filter(s => s.sharedConf && s.sharedConf.confId === newConf.confId).forEach(s => s.update({ sharedConf: Object.assign({}, this.sharedConfigurations[index], newConf) }))
       } else {
-        if (!this.activeSource) throw new Error('[AudioPanel updateConf] Cannot update privateConf, active source is missing')
+        if (!this.activeSource) throw new Error('[App updateConf] Cannot update privateConf, active source is missing')
         this.activeSource.update({ privateConf: Object.assign({}, this.sharedConfigurations[index], newConf) })
       }
     },
