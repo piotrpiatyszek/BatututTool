@@ -215,13 +215,18 @@ export default {
         onlayerupdate (update, layerId, range) {
           var layer = layerId ? self.layers.find(l => l.layerId === layerId) : null
           var isNewLayer = !layer
+          var features = null
           if (isNewLayer) {
             layer = new Layer(Object.assign({}, update, { name: range === null ? 'Full' : '', deletable: range !== null, source: 'audiopaths' }))
           } else {
+            features = Object.keys(layer.features)
             layer = layer.update(update)
           }
           if (range) {
             layer = layer.slice(range)
+          }
+          if (features) {
+            layer.loadFeatures(features).then(l => self.updateLayer(l), e => { throw new Error('[App onlayerupdate] Failed to load features') })
           }
           if (isNewLayer) {
             self.addLayer(layer)

@@ -51,7 +51,8 @@ class Layer {
     if (this.energy && this.energy.x && this.plotEnergy === undefined) this.plotEnergy = false
   }
   update (props) {
-    return new Layer(Object.assign({}, this, props))
+    if (props.trace) return new Layer(Object.assign({}, this, { features: {} }, props))
+    else return new Layer(Object.assign({}, this, props))
   }
   duplicate () {
     return new Layer({ energy: this.energy, trace: this.trace })
@@ -64,7 +65,7 @@ class Layer {
     var startX = this.trace.x[startIndex]
     var endX = this.trace.x[endIndex]
     var trace = { x: this.trace.x.slice(startIndex, endIndex + 1), y: this.trace.y.slice(startIndex, endIndex + 1) }
-    if (!this.energy) return new Layer(Object.assign({}, this, { trace }))
+    if (!this.energy) return this.update({ trace })
 
     var energyStartIndex = -1
     var energyEndIndex = -1
@@ -82,7 +83,7 @@ class Layer {
     if (this.energy.mids) energy.mids = [0, ...this.energy.mids.slice(energyStartIndex, energyEndIndex + 1).map(v => v - startIndex), endIndex - startIndex]
     if (this.energy.x) energy.x = [startX, ...this.energy.x.slice(energyStartIndex, energyEndIndex + 1), endX]
 
-    return new Layer(Object.assign({}, this, { trace, energy }))
+    return this.update({ trace, energy })
   }
   sliceAndMerge (ranges) {
     if (!ranges || !Array.isArray(ranges)) throw new Error('[Layer sliceAndMerge] Invalid prop ranges')
@@ -105,7 +106,7 @@ class Layer {
         if (energy.x) energy.x = [...energy.x, ...sliced.energy.x, trace.x[trace.x.length - 1]]
       }
     })
-    return new Layer(Object.assign({}, this, { trace, energy }))
+    return this.update({ trace, energy })
   }
   moveX (value) {
     if (!Number.isFinite(value)) throw new Error('[Layer moveX] Invalid value prop')
@@ -117,7 +118,7 @@ class Layer {
     if (energy && energy.x) {
       energy.x = energy.x.map(x => x + value)
     }
-    return new Layer(Object.assign({}, this, { trace, energy }))
+    return this.update({ trace, energy })
   }
   download () {
     var json = JSON.stringify({ trace: this.trace, energy: this.energy, name: this.name, color: this.color })
@@ -150,6 +151,22 @@ class Layer {
         resolve(self.update({ features: Object.assign({}, self.features, { [id]: response.body.feature }) }))
       }, response => {
         reject(new Error('Invalid server response'))
+      })
+    })
+  }
+  loadFeatures (idList) {
+    var features = {}
+    var self = this
+    return new Promise((resolve, reject) => {
+      var ids = [...idList]
+      idList.forEach(id => {
+        this.getFeature(id).then(newLayer => {
+          ids = ids.filter(i => i !== id)
+          Object.assign(features, { [id]: newLayer.features[id] })
+          if (ids.length === 0) {
+            resolve(self.update({ features: Object.assign({}, self.features, features) }))
+          }
+        }, e => reject(e))
       })
     })
   }
